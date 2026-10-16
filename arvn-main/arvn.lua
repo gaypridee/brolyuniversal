@@ -1,0 +1,11039 @@
+local cloneref = cloneref or function(o) return o end
+local function service(name) return cloneref(game:GetService(name)) end
+local Players = service("Players")
+local RunService = service("RunService")
+local UIS = service("UserInputService")
+local TweenService = service("TweenService")
+local HttpService = service("HttpService")
+local CoreGui = service("CoreGui")
+local Stats = service("Stats")
+local TeleportService = service("TeleportService")
+local MarketplaceService = service("MarketplaceService")
+local SoundService = service("SoundService")
+local GuiService = service("GuiService")
+local Lighting = service("Lighting")
+local TeamsService = service("Teams")
+local LP = Players.LocalPlayer
+
+local genv = (getgenv and getgenv()) or _G
+local PREV
+do
+	local function copy(t)
+		if type(t) ~= "table" then return t end
+		local o = {}
+		for k, v in pairs(t) do o[k] = copy(v) end
+		return o
+	end
+	local old = rawget(genv, "arvn")
+	if type(old) == "table" then
+		PREV = {flags = copy(old.Flags), binds = copy(old.Binds), page = old.Page, folder = old.Folder}
+		if old.Unload then pcall(old.Unload) end
+		genv.arvn = nil
+	end
+end
+
+local UI = {Flags = {}, Binds = {}, Version = "1.0.0"}
+genv.arvn = UI
+
+local D = {alive = true, conns = {}, cleanups = {}, started = os.clock()}
+local S = UI.Flags
+local T = {}
+local M = {row = 40, nav = 36, navSub = 33, gap = 16, title = 30, rWin = 14, rCard = 10, rField = 7, rPop = 12, rChip = 6, text = 14}
+local DIR = "arvn"
+
+function D.on(signal, fn)
+	local c = signal:Connect(fn)
+	D.conns[#D.conns + 1] = c
+	return c
+end
+
+function D.onCleanup(fn)
+	D.cleanups[#D.cleanups + 1] = fn
+end
+
+function D.safe(fn, ...)
+	return pcall(fn, ...)
+end
+
+function D.ensureDir(path)
+	pcall(function()
+		if makefolder and isfolder and not isfolder(path) then makefolder(path) end
+	end)
+end
+do
+D.ICON_DATA = {
+	["checker"] = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAK0lEQVR42mO8du3afwY84Ny5c/ikGZgYKASjBgwGA1gIxbORkdFoIA5/AwD5rwkNX+Y2KgAAAABJRU5ErkJggg==",
+	["vignette"] = "iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAPsElEQVR42u1d63LbvA4kKcru9/4vexpL5PkTdxgUlwVIp2kjzXDkpm5qaxeLCy/IvfeeXnMdKaW39/EY7uM4hjsd53AfR2PuLaXUmdd9GIm8lq78PsbXOaVUhjt9vTH3cdThTsc+3MdxG+639/csv17xS/sAvEaAQyGBBP4pgM8BTwkwksAiAAWfEmAEvxjgayTY37/nDhjAkwj5KxPgYMDnLJ8SQVIA+hDaBAFWKoBFgMIAzynAMdx3huicESxVg5UEeIL9k7F8r/yvIIA0NBWQrF9zBTMEeI5TeQaNUb+nGnwJAvR30H8q1v9mWP+DyJ4m/xzwKAlmXIAGPiXCOA6GABvx/5ICNOE7P/98n3UJswQ4B+B/EhV4AC7gcAaAJ/MQUP/PEaAT0D0EyIICFCUGOIjVn8yf0ZinDyTY/gQBjsHyfzIuwCKA5AKiASDiAmYVwFIBLRA8GBKMweDpJPz4ne9RLKMEeBDwNQJYGcDz9WmQoC3MAJAYYDYTKIoCnIzs74arO4V0tw8k2D+DAG8M+JL/t+RfS/88BJAeiocE2RkIam6AI8A53EcijAqwM8Q+me+mfdfbKwnwllL6nwD+TwX8t2D+fzCBECL/f0oBOPDLADYlgkRuNNiVSH57BQFG8P8HgG9VACkBrAygCT6xBzKAKAG0iuCmkOAkr6sS7e9OwLtQ37itJIAE/gr/L+X/aEDUBYm0ikCSC0CKQVZJWKsIjtF/A4M8y81J120FASzwPQQ4lBRQ8v9NIUAPFIEQBfAWg7JCAK4o1Bz1Dc61oVVNkwTVEe1L4EcDQG/17wSLP5b1e9NAT0n4NAjQiBtAfXwTSIyWtfcIAQ4FcIQAX0X+Uf/vDQQtN3AS4NtAgA0gc3NkNhr4z1E9BDid4P90BH+PhdU/zuo/SwE0FeBIQGsCLVjM6k7rH8eGEKAbQKPpX4QApzAJYoHfwIfVme+amHo6UgvQ6gEjCUbyjuBvTgIk0Odrn/s/+l05AnBgS0BH0r9XFn9Q+fekgRE38AS+EPCfn7cach8hAErWHxoB3gS/rgV6K/w/svrHCpa8+b+VBqL1AKkg1Jh7Y0hQHXLfA+AXhqQ3jgAHAOxPkAwrZv9ma/8R/4/GAZ65AUnueyDA68AilmQQc6xO/iJAF6Z0vZY/M/kzO/PnCf7QOoAVDDaDAI2QoCvpnfb50Yg/CcSUyJkrWc2D+HZrmvdtofVH6/4R/++NAxohwnjnSICkdyjonsA0K4tW7lWQ/gcDtmTp0Zk/JPU7J8D3+P9oHJAFX08feFdUIJLfo4TgytIf/lwBUL2WHpn6Xbnsqwek3+MKEBJwn6U4wNfUyopJimfJWjUsW1KCxyT4x4uWfXsmf7Q6ADo5NI4+3Jvw4GcKO8mRmloTVGUkwEPx7W8LrN1b+l0x5++1/j4ZEFICZAHgbaKqZ/3/1oJVCn5NKdUatGoNeGnW7+Es/Mys+bMqf4iV9RcQQCJBAid5vCuWrZ1KvynAjKRrln44ln3P+P006fsl10DBtVyB5e83QIWyI8grzkWqv5am1wDo3iKPBP6xcLWvleqt2P/YBUuPkABJ99C1CRIhtndcpghwgIs5PErgKftGFnuuAlz7PR4SpMmJHasYJY0HIYJKgEMB/HCO05D8Y+Fa/xR8oK8iBB2JECEF09BxHECpdxwPcn9iXlNKj8rI+qFIfoQIZ3Czh1QqTROW9JlkGEvFKZDnJ6fkc2kfVYCDEOGDAsyM01nk8eb8sxL6WUQYg8TGSPdMns+BfwCB3zHcf3PX1cjbH04SnA7wkdWwMwWTr6IIiSjBbOWxDOAj5xRQ6x8xrzUYuUuge4H3+P30hcHniNCF2UPL+k/nGoRzUAJq8eOWNFYJKijnp7F863BIfSTf/1vA57KEUQUkEmSBCFqx5yB3SoRxGxrdnKoSQCKCBPIx4ec9y6H+tqsLroAjAZX9UyBBYdxAETDhNqYeEgE8QRy6hPs7g68RgSMB5/cpCQp5XQj4o/VzmFUO4yqAfUyCjQR52uaHfwV8iwTjd+f8/jlMN1MiULA1JaBb039hXEEJ927aQP18M1K99A+ToDMq0IS1Bhz4jQBfBPBVXCso7U2J4iO+/m9M815RM0iACjRCBLoFrZBl51LQzeJcwWINOnPn8fXtGwGflClfCn5TCNCIAmjGCI0alHY0n/es5E3fhAQ0RWxk3SAlASUAJcImYHMiBKmT0n46pf67Sj8SD3RCgs6QogkYbAIuZiGuCm9EgD4dUt/AJVzpG5IgC/sFuCpihASaq2hFAXJG7lftcP1O8YA2JIOSMGtg5ZVVgIjFS779u0f93qxAUoHCxArdIEID3IKqAJ7TOFbse7uUwK8ACBaqYlQn8B1M6dqCHTCXCvz+TItwVqCFkziKM29H/tML9M+JB3oAJ5YAXmmRgPau3r2IIBeGEFdguQnIVRdBvr1W7vH3F/Cx+gDyzN2uujhO3NB+uXfT43XNuYFuYIFi14ryC3tgOza6XesiAuYGooTo6CmjZdKavbteLuDnsoK0CCNVAVaAL0nadfndQFKmkKdHWQC0lcde1/qYICX5+JuXEgDxT6ifu67Y84niIhIgGb7ba+FXzv/a2kBUIVhciwFU5ANYS6CuK7Z0LIHbytGYLHEuIIEbMizJv8D+3M2o1sGSIsYFqEQlkBApff527e8GPnroFXxMTpmUo8vqv95GVJfbLQvA7JN/f12f82y7hwDX9U2u4jiONAXfm6/HHL5WPtscVYAM/ocX0F+DGNmDSQH2qSfgqBPtkOXrWge4BS6CV6YEyMoxZMjp1Jca/Fmr17DQMM0ppVwE1li/QDuqPCxH1wU9t+zAQ/v36UkA7WAi5Ngy5ANc4MdIEDFA5MCpX39XHMeQon100C91XbHnE8WFHV4CcMrgVYjripHCsvAUwTJKAIQYaMB4XXhgFwZaIwDtK7eKBBpjryt2TvAq8H9hXhxdp3KQJOkKCsNBXwqCq/U0VBWgGD1opG6UXkJcV7wFrNUZ1INdKUqzIfSXI8pwFYlixR7E0lEjZbGWGg1ZElIA6UFdwnXhko8+/wK2ts1In7kM/Cw7Y4Triss/YuUF6CL2wQWgRICl5YoJlvv8iKsuCAE2BwlgaXHGBdeFS78XC7WrWFV6y1qtSDTApTaqEgn6BboZ3Rdnk0ikhZyqAJQUhfkzSohLCdb4fbQvsIbhh/dLnaY8jPIGj1dGgLWB9QRzHsw+4FwN1iBu4VQ+GHfcWVcUoF9WLwZ7s3LP4lyFN3Fvpr+QnlXbBAIUoY067aPDtVn515d3eX27R+4to4YIYI2T+VDNIMDYSLGRB/JdFaA4/bwl7fCopK9MZfrNbAbj6BlDG8kAirI7VZpG7t886vc2g96UNvFc3+AP3cMRFajDgcQj8JtwdPnGSL6kAlJfvf4NwEcDPbe0o7hW4c1cj5lNIAA9qXojJ1tuxqEGWl+9/g9LPmL9lmUjJNAw3ugbKgH/EH7pCPYmnEk3Ar8l+/CJ9o+SYCanj4IttounpKjkhxwJ6BnzGiG04+S2ZJ89oDVX7H95tD8DvlfmKwc2N6rxZtp67CQNCp7gV/Ck8C3YXPFvSxEj4G8Oa98Eaa+MEqhEkKz/FFRg/Dsa9ddkHx2LnhnUjOzhX4r0N0dgJ0k95+tN6x8JsA9g7wPIe/K1ercOnPQeONHS33PuQAaaPiNBHir3FRy79pqCLykB0hewBg+SRI5Foa3VvtLhU9JCTqvCtzmKOBWR88DYqQKcjBLsCWsdgx4S3UHraUQJyhc7mCpPWH4BijUa+IjV74PF79LfjeCP93MAH2kY2cAewD3wkFvSDz/8TDLk5NukUZzWXxW/HrX6nQD/4Wec9VOwd0ebuJkDIjUVyIDK5BcQIgesPmr9CMA7aPnS698GQoAmuAJvf4BuRMyn8lCbkwSrUsb8AvCLo3KHyrwk+bs1PASINoOWCCBtdT4nSJAERchOJUBPSomCX4ycvgaUAAadEuCW9DbxHAGQXB/d/kxVQCPBCGwDD02mxaQV/j6BW7K8gd8SWQfHLaV0GxXgUFrFo30BU/KlfBzIGgk4mUcLTt1o34ps0kzOPXmetA/N4T0Aj/dfoGsK0JTO4UhvQK/MZoMEHPkQAkQKTzPRfnas3UPz/Iil3ziQyc/G99woAbyt4FECRHa6NkEFCpkviDa2eFXQl4M5/4xPvwGEYEnw/M8kFTgdQR5iZZ5dMJoKoCRIBhHQAs+M9GtTuhX0/xawEtg349/V+v7lbor1m52ngMIMctDB+MBOQgSLBB2oRcwogDa7NxP40dTP8vmWpWuWf2d+lurwxW5Ada85Cj0W6Aew1flUSEA/V1kQlHrTPo/0v8r6rXEn4D9f55EAibgCzecj/W3ygr1vJ7m3QAnaEwfkYJ0/Bxd3VCD6l6J6FGxp1BH08bo5p3d7YGqUe5AHuRfGz59AO9Q2GQeg/r846/2ewo8U/N2cCnBXyJEkAqT3N3ln+FACcA/qID87mF1HTVCB7vysHawDeFI/NPIvxgqeKAHuys/uBPg7BaoK4N3TXO/fHFgQeQ7gn2TTybgC2SpKtTRfnJoN/qyFHnURATigpZ/dOddchYewCSR45S5XCj5Xm9iY1DTqBqLz/Jb8e9btr/D/d3Bs3JetyoOoDAlWrIPTgqaTKMHoCk6yBrEZja5frQDezRyI/EeifwT8qoGsXbvT+pOy8RGJlg8S/Vvl6Q5OUPVgHQBVsgxu5KhA9Y8qwI253w0C/Bhe78mwcuu6Bfa6e6pj2wB+GZacayuRvG4gOaenUf//2fKPEODHcDexQwhgkQA9adTa5boRFbCmpb0qEE0Do9ZfHIs+dsUF3IDqXgh8DwE4EnhPsRwfzoN5SAfZdv6MBRq4OKWDU9UzBIjM+Rdgkae0kkcr794VBbihoHoIMJIgssV5G8DXDp3YyI4kDvwzWA/QSJAXL/ZcUfyJBIA3D6BeAqShjqw9lAwcaPAYLP9BNqNycUADN6f8SQXw1P49kz+o/9+9YEYI8MwOLKvYlKDvQe4b2YMobUz1uIHoxpSZNX9bYOGHpQA3kAAhLKMEeP7bDAZ53MMYFYCOagSD1jrF5lwhlANbvPLC6h8i/7swqycWeV5NgGfF8L+JrU/H4AJG69cUANmf0F6kADPLvrgMYDcIgFQAp47YmyXA80H9MGRfmg59EIs/yAJVulLZEwf04Krl6Jp/yf/XYP4vreUbVWD6WkGAMTjU9rrTL625gBUEiO5WipaAZwngyQCW4baSAAk4omQTTiV7MOAfhguYzQRmZjLzogBwD0wA5dWApRdsoLwDX/5B7gdIAkkFrIrgSgWQSsCrVv9wBHgFVun/J+zg0HoEDvQAAAAASUVORK5CYII=",
+}
+end
+do
+local function row(t, id, label, desc, o)
+	o = o or {}
+	o.t, o.id, o.label, o.desc = t, id, label, desc
+	return o
+end
+local function toggle(id, label, desc, o) return row("toggle", id, label, desc, o) end
+local function slider(id, label, desc, min, max, def, o)
+	o = o or {}
+	o.min, o.max, o.def = min, max, def
+	return row("slider", id, label, desc, o)
+end
+local function drop(id, label, desc, opts, def, o)
+	o = o or {}
+	o.opts, o.def = opts, def
+	return row("dropdown", id, label, desc, o)
+end
+local function color(id, label, desc, def, o)
+	o = o or {}
+	o.def = def
+	return row("color", id, label, desc, o)
+end
+local function button(id, label, desc, o) return row("button", id, label, desc, o) end
+local function input(id, label, desc, def, o)
+	o = o or {}
+	o.def = def
+	return row("input", id, label, desc, o)
+end
+local function info(id, label, desc, value) return row("info", id, label, desc, {value = value}) end
+local function key(id, label, desc, def) return row("keybind", id, label, desc, {def = def}) end
+local function link(id, label, desc, sub, o)
+	o = o or {}
+	o.sub = sub
+	return row("link", id, label, desc, o)
+end
+local function sub(title, ...) return {title = title, cards = {...}} end
+
+D.FONTS_UI = {"BuilderSans", "GothamSSm", "Montserrat", "Arimo", "Roboto", "Ubuntu", "Nunito", "Oswald", "TitilliumWeb", "Michroma"}
+D.FONTS_TEXT = {
+	"BuilderSans", "BuilderSansBold", "GothamSSm", "Gotham", "GothamBold", "Montserrat", "Arimo", "ArimoBold", "Roboto",
+	"RobotoCondensed", "RobotoMono", "Ubuntu", "Nunito", "Oswald", "TitilliumWeb", "Michroma", "Jura", "Sarpanch",
+	"Arcade", "Code", "SciFi", "Highway", "Antique", "Bodoni", "Garamond", "Cartoon", "Fantasy", "FredokaOne",
+	"LuckiestGuy", "Bangers", "Creepster", "DenkOne", "Fondamento", "GrenzeGotisch", "IndieFlower", "JosefinSans",
+	"Kalam", "Merriweather", "PatrickHand", "PermanentMarker", "SpecialElite", "AmaticSC", "SourceSans", "SourceSansBold",
+}
+D.SOUND_NAMES = {"None", "Soft", "Tick", "Click", "Pop", "Bubble", "Glass", "Mech", "Switch", "Chime", "Ping", "Bell", "Swoosh", "Drop"}
+D.THEME_NAMES = {"Dark", "Gray", "Blue", "Green", "Purple", "Orange", "Pink", "Light", "AMOLED", "Contrast", "Custom"}
+D.GROUPS = {{"enemy", "Enemies"}, {"team", "Teammates"}, {"npc", "NPCs"}}
+D.EXTRA_DEFS = {tm_roles = {}, vis_group = "enemy", prev_spin = true, prev_speed = 35}
+
+-- Option lists for the display, style and motion systems.
+D.DENSITIES = {"Compact", "Comfortable", "Spacious"}
+D.FIT_MODES = {"Off", "Scale", "Offset", "Hybrid", "Pixel"}
+D.ASPECTS = {"Off", "4:3", "5:4", "3:2", "16:10", "16:9", "21:9", "32:9", "Custom"}
+D.ASPECT_FITS = {"Stretch", "Fit", "Fill", "Letterbox", "Crop", "Cover", "Center"}
+D.ASPECT_ANCHORS = {"Center", "Top Left", "Top", "Top Right", "Left", "Right", "Bottom Left", "Bottom", "Bottom Right"}
+D.DPI_MODES = {"Off", "Auto", "Compact", "Touch", "Console", "VR"}
+D.COMPONENT_STYLES = {"Default", "Minimal", "Glass", "Neon", "Flat", "Material", "Retro", "Soft", "Hard"}
+D.BORDER_STYLES = {"Soft", "Hard", "None", "Inset", "Outline"}
+D.EASE_STYLES = {"Quint", "Sine", "Quad", "Cubic", "Back", "Elastic", "Bounce", "Linear"}
+D.MOTION_MODES = {"Off", "Reduce", "Strong"}
+D.FONT_WEIGHTS = {"Light", "Regular", "Medium", "SemiBold", "Bold"}
+D.WS_ASPECTS = {"4:3", "5:4", "16:10", "16:9", "21:9", "Custom"}
+D.WS_MODES = {"Stretch", "Letterbox", "Crop"}
+D.FOV_MODES = {"Vertical", "Diagonal", "MaxAxis"}
+D.ASPECT_RATIOS = {["4:3"] = 4 / 3, ["5:4"] = 5 / 4, ["3:2"] = 3 / 2, ["16:10"] = 16 / 10, ["16:9"] = 16 / 9, ["21:9"] = 21 / 9, ["32:9"] = 32 / 9}
+D.WS_RATIOS = {["4:3"] = 4 / 3, ["5:4"] = 5 / 4, ["16:10"] = 16 / 10, ["16:9"] = 16 / 9, ["21:9"] = 21 / 9}
+
+-- Flags that only need a cheap viewport recompute (no rebuild).
+D.RES_FLAGS = {"ui_fit", "ui_dpi", "ui_refw", "ui_refh", "ui_clamp", "ui_clamp_min", "ui_clamp_max", "ui_snap", "ui_aspect", "ui_aspect_num", "ui_aspect_den", "ui_aspect_fit", "ui_anchor", "ui_bars", "ui_bars_color", "ui_topbar"}
+-- Flags that need a full rebuild of the menu.
+D.SHAPE_FLAGS = {"ui_style", "ui_border", "ui_border_thick", "ui_shadow", "ui_shadow_size", "ui_shadow_amt", "ui_glow", "ui_glow_amt", "ui_gradient", "ui_gradient_rot", "ui_accent_panel", "ui_font_scale", "ui_font_weight", "ui_icon_scale", "ui_elem_scale", "ui_hidpi"}
+
+local G = {
+	boxc = {enemy = "#FF4550FF", team = "#4DA3FFFF", npc = "#FFB84DFF"},
+	fillc = {enemy = "#FF455026", team = "#4DA3FF26", npc = "#FFB84D26"},
+	on = {enemy = true, team = false, npc = false},
+}
+
+local playerModel = {
+	link("{g}_box", "Box", "Frame around each target. Click for style options.", sub("Box",
+		{
+			toggle("{g}_box_on", "Enabled", "Draw the box.", {def = true}),
+			drop("{g}_box_style", "Style", "Corner brackets, a full frame, rounded frame or a 3D cube.", {"Corner", "Full", "Rounded", "3D"}, "Corner"),
+		},
+		{
+			slider("{g}_box_thick", "Thickness", "Line thickness in pixels.", 1, 4, 1),
+			slider("{g}_box_corner", "Corner Length", "How long corner brackets are, relative to the box.", 10, 50, 25, {suf = "%"}),
+			slider("{g}_box_pad", "Padding", "Extra space between the model and the box.", 0, 12, 3, {suf = "px"}),
+		},
+		{
+			toggle("{g}_box_outline", "Outline", "Dark outline behind the box for contrast.", {def = true, color = "#000000B4"}),
+			toggle("{g}_box_fill", "Fill", "Tinted fill inside the box.", {color = "#FF455026", gcolor = G.fillc}),
+			drop("{g}_box_fillstyle", "Fill Style", "Solid fill or a fade toward one edge.", {"Solid", "Fade Down", "Fade Up"}, "Solid"),
+		}
+	), {color = "#FF4550FF", gcolor = G.boxc}),
+	link("{g}_name", "Name", "Label above or below each target.", sub("Name",
+		{
+			toggle("{g}_name_on", "Enabled", "Show the name label.", {def = true}),
+			drop("{g}_name_src", "Source", "Which name to show.", {"Username", "Display Name", "Both"}, "Display Name"),
+			drop("{g}_name_pos", "Position", "Where the label sits.", {"Top", "Bottom"}, "Top"),
+			drop("{g}_name_case", "Case", "Letter case of the label.", {"Normal", "UPPERCASE", "lowercase"}, "Normal"),
+		},
+		{
+			toggle("{g}_name_dist", "Distance", "Append the distance to the target.", {def = true}),
+			toggle("{g}_name_tool", "Equipped Tool", "Show what the target is holding."),
+			toggle("{g}_name_avatar", "Avatar Icon", "Small headshot next to the name."),
+			toggle("{g}_name_tag", "Team Tag", "Colored team chip before the name."),
+		}
+	), {color = "#FFFFFFFF"}),
+	link("{g}_hp", "Health", "Health bar next to the box.", sub("Health",
+		{
+			toggle("{g}_hp_on", "Enabled", "Show the health bar.", {def = true}),
+			drop("{g}_hp_pos", "Position", "Side of the box the bar sits on.", {"Left", "Right", "Top", "Bottom"}, "Left"),
+			slider("{g}_hp_thick", "Thickness", "Bar thickness in pixels.", 1, 6, 2),
+		},
+		{
+			toggle("{g}_hp_grad", "Gradient", "Blend from the low color to the full color.", {def = true}),
+			color("{g}_hp_low", "Low Color", "Color at low health.", "#FF453AFF"),
+			color("{g}_hp_mid", "Mid Color", "Color at half health.", "#FFD60AFF"),
+		},
+		{
+			toggle("{g}_hp_num", "Show Number", "Print the health value next to the bar."),
+			drop("{g}_hp_numstyle", "Number Style", "Raw value or percentage.", {"Value", "Percent"}, "Value"),
+			toggle("{g}_hp_hidefull", "Hide When Full", "Hide the bar while health is full."),
+		}
+	), {color = "#4CD964FF"}),
+	link("{g}_skel", "Skeleton", "Lines along the limbs.", sub("Skeleton",
+		{
+			toggle("{g}_skel_on", "Enabled", "Draw the skeleton."),
+			slider("{g}_skel_thick", "Thickness", "Line thickness in pixels.", 1, 3, 1),
+			toggle("{g}_skel_outline", "Outline", "Dark outline behind the lines."),
+			toggle("{g}_skel_head", "Head Circle", "Circle around the head."),
+		}
+	), {color = "#FFFFFFFF"}),
+	link("{g}_head", "Head Dot", "Marker on the head.", sub("Head Dot",
+		{
+			toggle("{g}_head_on", "Enabled", "Draw the head marker."),
+			toggle("{g}_head_fill", "Filled", "Solid dot instead of a ring."),
+			slider("{g}_head_size", "Size", "Marker size relative to the head.", 40, 200, 100, {suf = "%"}),
+		}
+	), {color = "#FFFFFFFF"}),
+	link("{g}_tracer", "Tracer", "Line from the screen to each target.", sub("Tracer",
+		{
+			toggle("{g}_tracer_on", "Enabled", "Draw tracers."),
+			drop("{g}_tracer_from", "Origin", "Where the line starts on screen.", {"Bottom", "Center", "Top", "Mouse"}, "Bottom"),
+			drop("{g}_tracer_to", "Target", "Where the line ends on the target.", {"Feet", "Torso", "Head"}, "Feet"),
+		},
+		{
+			slider("{g}_tracer_thick", "Thickness", "Line thickness in pixels.", 1, 3, 1),
+			toggle("{g}_tracer_outline", "Outline", "Dark outline behind the line."),
+		}
+	), {color = "#FFFFFFFF"}),
+	link("{g}_look", "Look Direction", "Line showing where the target faces.", sub("Look Direction",
+		{
+			toggle("{g}_look_on", "Enabled", "Draw the facing line."),
+			slider("{g}_look_len", "Length", "Line length in studs.", 1, 20, 6),
+			slider("{g}_look_thick", "Thickness", "Line thickness in pixels.", 1, 3, 1),
+		}
+	), {color = "#FFFFFFFF"}),
+	link("{g}_arrow", "Offscreen Arrows", "Arrows pointing at targets outside your view.", sub("Offscreen Arrows",
+		{
+			toggle("{g}_arrow_on", "Enabled", "Draw offscreen arrows."),
+			slider("{g}_arrow_radius", "Radius", "Distance of the arrows from the screen center.", 60, 400, 160, {suf = "px"}),
+			slider("{g}_arrow_size", "Size", "Arrow size in pixels.", 6, 30, 14),
+		},
+		{
+			toggle("{g}_arrow_fill", "Filled", "Solid arrows instead of outlines.", {def = true}),
+			toggle("{g}_arrow_pulse", "Pulse", "Gently pulse the arrows."),
+			toggle("{g}_arrow_dist", "Distance", "Print the distance under each arrow."),
+		}
+	), {color = "#FFFFFFFF"}),
+	link("{g}_chams", "Chams", "Colored overlay on the model itself.", sub("Chams",
+		{
+			drop("{g}_chams_mode", "Material", "How the overlay is rendered.", {"Default", "Glow", "Flat", "Ghost"}, "Default"),
+			drop("{g}_chams_render", "Color Mode", "Static, pulsing, rainbow or health-based color.", {"Static", "Pulse", "Rainbow", "Health"}, "Static"),
+		},
+		{
+			toggle("{g}_chams_fill", "Fill", "Tint the whole model.", {color = "#FF455080", gcolor = {enemy = "#FF455080", team = "#4DA3FF80", npc = "#FFB84D80"}}),
+			toggle("{g}_chams_outline", "Outline", "Bright edge around the model.", {color = "#FFFFFFFF"}),
+			toggle("{g}_chams_walls", "Through Walls", "Keep chams visible behind geometry.", {def = true}),
+		}
+	)),
+	link("{g}_flags", "Flags", "Small info lines beside the box.", sub("Flags",
+		{
+			toggle("{g}_flag_team", "Team", "Team name."),
+			toggle("{g}_flag_hp", "Health", "Health percentage."),
+			toggle("{g}_flag_tool", "Tool", "Equipped tool."),
+			toggle("{g}_flag_state", "State", "Idle, walking or airborne."),
+		},
+		{
+			color("{g}_flag_color", "Color", "Text color of the flags.", "#C8C8D0FF"),
+			drop("{g}_flag_side", "Side", "Which side of the box the flags use.", {"Right", "Left"}, "Right"),
+		}
+	)),
+	link("{g}_text", "Text", "Font and outline for this group's labels.", sub("Text",
+		{
+			drop("{g}_font", "Font", "Font used by names, flags and numbers.", D.FONTS_TEXT, "BuilderSans"),
+			slider("{g}_textsize", "Size", "Text size in pixels.", 9, 22, 13),
+		},
+		{
+			toggle("{g}_textoutline", "Outline", "Dark stroke around text.", {def = true, color = "#000000B4"}),
+			drop("{g}_units", "Units", "Distance units.", {"Meters", "Studs"}, "Meters"),
+		}
+	)),
+}
+
+local NAV_ALL = {
+	{group = "Main"},
+	{id = "home", name = "Dashboard", icon = "house", page = {
+		{
+			{title = "Session", rows = {
+				info("i_game", "Game", "Name of the experience you are in.", "..."),
+				info("i_server", "Server", "Short ID of this server.", string.sub(game.JobId, 1, 8)),
+				info("i_players", "Players", "Players in this server.", "0"),
+				info("i_uptime", "Session Time", "Time since the menu loaded.", "0:00"),
+				info("i_fps", "Frame Rate", "Frames rendered per second.", "0"),
+				info("i_ping", "Ping", "Round trip to the server.", "0 ms"),
+				info("i_mem", "Memory", "Client memory in use.", "0 MB"),
+				info("i_exec", "Executor", "The executor running this script.", ""),
+			}},
+			{title = "Performance", rows = {
+				row("graph", "g_fps", "Frame Rate History", "Last minute of frame rate, sampled twice a second."),
+			}},
+		},
+		{
+			{title = "Welcome", rows = {
+				row("hero", "hero", "", ""),
+			}},
+			{title = "Shortcuts", rows = {
+				button("nav_theme", "Appearance", "Theme, colors and layout.", {icon = "palette", nav = "set_theme"}),
+				button("nav_overlays", "Overlays", "Watermark, keybind list, keystrokes and notifications.", {icon = "layers", nav = "set_overlays"}),
+				button("nav_configs", "Configs", "Save, load and share your setup.", {icon = "folder", nav = "set_configs"}),
+			}},
+		},
+	}},
+	{id = "player", name = "Player", icon = "user", page = {
+		{
+			{title = "Camera", rows = {
+				toggle("cam_fov", "Custom FOV", "Override the camera field of view."),
+				slider("cam_fov_val", "Field Of View", "Camera field of view in degrees.", 30, 120, 90, {suf = "°"}),
+				toggle("cam_zoom", "Zoom", "Temporarily narrow the view.", {bind = "C", mode = "Hold"}),
+				slider("cam_zoom_val", "Zoom FOV", "Field of view while zooming. Lower zooms more.", 5, 60, 25, {suf = "°"}),
+				toggle("cam_third", "Third Person", "Pull the camera behind your character.", {sub = sub("Third Person",
+					{
+						slider("cam_third_dist", "Distance", "Camera distance in studs.", 4, 30, 10),
+						slider("cam_third_height", "Height", "Vertical camera offset.", -2, 6, 1.5, {step = 0.5}),
+						slider("cam_third_side", "Shoulder", "Sideways camera offset.", -4, 4, 1.5, {step = 0.5}),
+					},
+					{
+						toggle("cam_third_collide", "Wall Collision", "Keep the camera out of walls.", {def = true}),
+					}
+				)}),
+				toggle("cam_unlockzoom", "Unlock Zoom", "Let the camera zoom much farther out."),
+				toggle("cam_freecam", "Freecam", "Fly the camera with WASD, E and Q. Hold right click to look, scroll to change speed. The mouse stays free so you can click things.", {sub = sub("Freecam",
+					{
+						slider("cam_free_speed", "Speed", "Base flying speed. Scroll while flying to change it.", 5, 200, 40),
+						slider("cam_free_boost", "Boost", "Speed multiplier while holding Shift.", 1, 10, 3),
+						toggle("cam_free_mouse", "Free Mouse", "Keep the cursor free so you can click buttons and things in the world. Hold right click to look around.", {def = true, nobind = true}),
+					}
+				)}),
+				toggle("cam_nobob", "Steady Camera", "Keep the camera still when the game bobs it."),
+			}},
+		},
+		{
+			{title = "Character", rows = {
+				drop("ch_anim", "Animation Pack", "Animation style for your character.", {"Default", "Ninja", "Robot", "Stylish", "Superhero", "Zombie", "Cartoony", "Mage"}, "Default"),
+				toggle("ch_tint", "Body Tint", "Tint your character locally.", {color = "#FFFFFFFF"}),
+				toggle("ch_hideacc", "Hide Accessories", "Hide hats and accessories locally."),
+				toggle("ch_hidename", "Hide Name Tag", "Hide name tags above your character."),
+			}},
+			{title = "Input", rows = {
+				slider("in_sens", "Sensitivity", "Scales your mouse sensitivity. Restored on eject.", 0.1, 4, 1, {step = 0.05, suf = "x"}),
+				toggle("in_invert", "Invert Y", "Invert vertical camera movement."),
+			}},
+		},
+	}},
+	{id = "visuals", name = "Visuals", icon = "eye", children = {
+		{id = "vis_players", name = "Players", icon = "user-round", grouped = true, page = {
+			{
+				{title = "Target Group", rows = {
+					row("groupseg", "vis_group_row", "", ""),
+				}},
+				{title = "General", rows = {
+					toggle("{g}_on", "Enabled", "Draw this group on screen.", {gdef = G.on}),
+					toggle("{g}_visonly", "Visible Only", "Skip targets behind walls. Color applies to visible ones.", {color = "#9EC5FFFF"}),
+					slider("{g}_maxdist", "Max Distance", "Targets farther than this are not drawn.", 50, 2000, 800, {suf = "m", step = 10}),
+					toggle("{g}_fade", "Distance Fade", "Fade elements as targets get farther away.", {def = true}),
+					slider("{g}_limit", "Target Limit", "Maximum number of targets drawn at once.", 1, 50, 20),
+				}},
+				{title = "Model", rows = playerModel},
+			},
+			{preview = true},
+		}},
+		{id = "vis_extras", name = "Extras", icon = "sparkles", page = {
+			{
+				{title = "Crosshair", rows = {
+					toggle("xh_on", "Enabled", "Draw a custom crosshair in the screen center.", {color = "#7CFF9BFF"}),
+					drop("xh_style", "Style", "Shape of the crosshair.", {"Cross", "Plus Dot", "Dot", "Circle", "T-Shape", "Chevron"}, "Cross"),
+					slider("xh_len", "Length", "Arm length in pixels.", 2, 30, 7),
+					slider("xh_gap", "Gap", "Space between the center and the arms.", 0, 20, 4),
+					slider("xh_thick", "Thickness", "Arm thickness in pixels.", 1, 6, 2),
+					toggle("xh_outline", "Outline", "Dark outline for contrast.", {def = true, color = "#000000C8"}),
+					link("xh_motion", "Motion", "Spin and breathing animation.", sub("Motion",
+						{
+							toggle("xh_spin", "Spin", "Rotate the crosshair continuously."),
+							slider("xh_spin_speed", "Spin Speed", "Degrees per second.", 10, 720, 180, {step = 10}),
+						},
+						{
+							toggle("xh_pulse", "Breathing", "Slowly pulse the gap."),
+							slider("xh_pulse_amt", "Breathing Amount", "How far the gap moves.", 1, 10, 3),
+						}
+					)),
+				}},
+			},
+			{
+				{title = "Screen", rows = {
+					toggle("scr_bars", "Cinematic Bars", "Black bars at the top and bottom of the screen."),
+					slider("scr_bars_size", "Bar Height", "Height of each bar.", 2, 25, 10, {suf = "%"}),
+					toggle("scr_vignette", "Vignette", "Darken the screen edges.", {color = "#000000B4"}),
+				}},
+			},
+		}},
+		{id = "vis_world", name = "World", icon = "sun", page = {
+			{
+				{title = "Lighting", rows = {
+					toggle("w_fullbright", "Fullbright", "Light everything evenly."),
+					toggle("w_time", "Custom Time", "Lock the time of day."),
+					slider("w_time_val", "Time Of Day", "Hour of the day.", 0, 24, 14, {step = 0.25, suf = "h"}),
+					toggle("w_ambient", "Ambient Color", "Override the ambient light color.", {color = "#8FA6FFFF"}),
+					toggle("w_bright", "Custom Brightness", "Override scene brightness."),
+					slider("w_bright_val", "Brightness", "Scene brightness.", 0, 6, 2, {step = 0.1}),
+					toggle("w_shadows", "Shadows", "Render global shadows.", {def = true}),
+				}},
+				{title = "Atmosphere", rows = {
+					toggle("w_nofog", "Remove Fog", "Clear fog and atmosphere haze."),
+					toggle("w_fog", "Custom Fog", "Set your own fog color and distance.", {color = "#A6B4C8FF"}),
+					slider("w_fog_end", "Fog Distance", "Distance where fog becomes solid.", 50, 5000, 1000, {step = 50}),
+				}},
+			},
+			{
+				{title = "Color Grading", rows = {
+					toggle("w_grade", "Enabled", "Apply color grading."),
+					slider("w_contrast", "Contrast", "Contrast adjustment.", -1, 1, 0.1, {step = 0.05}),
+					slider("w_saturation", "Saturation", "Saturation adjustment.", -1, 1, 0.1, {step = 0.05}),
+					slider("w_exposure", "Exposure", "Brightens or darkens the grade.", -1, 1, 0, {step = 0.05}),
+					color("w_tint", "Tint", "Color multiplied over the scene.", "#FFFFFFFF"),
+				}},
+				{title = "Post Effects", rows = {
+					toggle("w_nobloom", "Disable Bloom", "Turn off the game's bloom."),
+					toggle("w_norays", "Disable Sun Rays", "Turn off the game's sun rays."),
+					toggle("w_nodof", "Disable Depth Of Field", "Turn off the game's depth of field."),
+				}},
+			},
+		}},
+	}},
+	{id = "targets", name = "Targets", icon = "crosshair", page = {
+		{
+			{title = "Detection", rows = {
+				drop("tm_mode", "Team Mode", "How teammates are recognized.", {"Automatic", "Roblox Teams", "Attributes", "Off"}, "Automatic"),
+				toggle("tm_friends", "Friends Are Allies", "Treat your Roblox friends as teammates.", {nobind = true}),
+				toggle("tm_custom", "Custom Roles", "Use the roles below instead of automatic detection.", {nobind = true}),
+			}},
+			{title = "Game Teams", rows = {
+				row("teamlist", "tm_list", "", ""),
+			}},
+		},
+		{
+			{title = "Quick Actions", rows = {
+				row("buttons", "tm_quick", "", "", {buttons = {{"act_tm_enemy", "All Enemies", "Mark every team as enemy."}, {"act_tm_ally", "All Allies", "Mark every team as ally."}}}),
+				button("act_tm_reset", "Reset Roles", "Clear every custom team role.", {icon = "rotate-ccw"}),
+			}},
+			{title = "NPCs", rows = {
+				toggle("npc_detect", "Detect NPCs", "Treat non-player characters as the NPC group.", {def = true, nobind = true}),
+				toggle("npc_hide", "Hide NPCs", "Never draw NPCs."),
+				drop("npc_src", "Source", "What counts as an NPC.", {"Humanoids", "Tagged Models", "Both"}, "Humanoids"),
+				slider("npc_maxdist", "Max Distance", "NPCs farther than this are ignored.", 50, 2000, 600, {suf = "m", step = 10}),
+			}},
+			{title = "Relation Colors", rows = {
+				toggle("col_relation", "Relation Colors", "Color targets by relation instead of per-group colors.", {nobind = true}),
+				color("col_enemy", "Enemy", "Color for enemies.", "#FF4550FF"),
+				color("col_team", "Teammate", "Color for teammates.", "#4DA3FFFF"),
+				color("col_npc", "NPC", "Color for NPCs.", "#FFB84DFF"),
+				color("col_friend", "Friend", "Color for your friends.", "#7CFF9BFF"),
+				color("col_priority", "Priority", "Color for players marked as priority.", "#FFD60AFF"),
+			}},
+		},
+	}},
+	{group = "Utility"},
+	{id = "server", name = "Server", icon = "globe", page = {
+		{
+			{title = "Players", rows = {
+				input("srv_search", "Search", "Filter the player list by name.", "", {nosave = true, placeholder = "Name..."}),
+				row("playerlist", "srv_list", "", ""),
+			}},
+		},
+		{
+			{title = "Selected Player", rows = {
+				row("playercard", "srv_card", "", ""),
+			}},
+			{title = "Server", rows = {
+				info("i_job", "Job ID", "Unique ID of this server.", string.sub(game.JobId, 1, 13)),
+				info("i_place", "Place ID", "ID of this place.", tostring(game.PlaceId)),
+				button("act_rejoin", "Rejoin", "Rejoin this exact server.", {icon = "refresh-cw"}),
+				button("act_hop", "Server Hop", "Join a different public server.", {icon = "shuffle"}),
+				button("act_small", "Smallest Server", "Join the emptiest public server.", {icon = "users"}),
+				button("act_copy_job", "Copy Job ID", "Copy this server's ID.", {icon = "copy"}),
+				button("act_copy_join", "Copy Join Script", "Copy a script that joins this server.", {icon = "clipboard"}),
+			}},
+			{title = "Join", rows = {
+				input("srv_join", "Job ID", "Paste a server id to join it.", "", {nosave = true, placeholder = "Job ID"}),
+				button("act_join_job", "Join Server", "Teleport to the server above.", {icon = "log-in"}),
+			}},
+		},
+	}},
+	{id = "tools", name = "Tools", icon = "package", page = {
+		{
+			{title = "Performance", rows = {
+				toggle("fps_unlock", "FPS Unlocker", "Raise the frame rate cap."),
+				slider("fps_cap", "FPS Cap", "Frame rate limit. The far right is unlimited.", 30, 540, 240, {step = 10, commit = true, maxLabel = "Max"}),
+				toggle("perf_potato", "Potato Mode", "Much lighter graphics for more FPS. The game stays playable. Click the arrow to pick what it changes.", {sub = sub("Potato Mode",
+					{
+						toggle("potato_quality", "Lowest Quality", "Set the render quality to the minimum.", {def = true, nobind = true}),
+						toggle("potato_shadows", "No Shadows", "Turn off every shadow.", {def = true, nobind = true}),
+						toggle("potato_materials", "Plain Materials", "Draw every part as smooth plastic.", {def = true, nobind = true}),
+						toggle("potato_textures", "No Textures", "Hide decals and textures.", {def = true, nobind = true}),
+					},
+					{
+						toggle("potato_particles", "No Particles", "Turn off particles, trails, beams, fire and smoke.", {def = true, nobind = true}),
+						toggle("potato_effects", "No Effects", "Turn off bloom, blur, sun rays, depth of field and haze.", {def = true, nobind = true}),
+						toggle("potato_terrain", "Simple Terrain", "Remove grass and still the water.", {def = true, nobind = true}),
+					}
+				)}),
+				toggle("perf_no3d", "Stop Rendering", "Stops drawing the game to save power while AFK. The screen turns white until you turn it off.", {bind = "None"}),
+			}},
+			{title = "Idle & Reconnect", rows = {
+				toggle("anti_afk", "Anti-AFK", "Stop the idle kick after 20 minutes."),
+				toggle("auto_rejoin", "Auto Rejoin", "Rejoin automatically after a disconnect."),
+				slider("auto_rejoin_delay", "Rejoin Delay", "Seconds to wait before rejoining.", 1, 30, 5, {suf = "s"}),
+				toggle("ses_joins", "Join Alerts", "Notify when players join or leave."),
+				toggle("ses_friends", "Friend Alerts", "Notify when a friend joins."),
+			}},
+		},
+		{
+			{title = "Utilities", rows = {
+				button("act_copy_pos", "Copy Position", "Copy your position to the clipboard.", {icon = "map-pin"}),
+				button("act_copy_cf", "Copy CFrame", "Copy your full CFrame to the clipboard.", {icon = "copy"}),
+				button("act_clean_shot", "Clean Screenshot", "Hide every overlay for five seconds.", {icon = "camera"}),
+			}},
+			{title = "Chat", rows = {
+				toggle("chat_log", "Chat Log", "Record chat messages below.", {nobind = true}),
+				row("console", "chat_console", "", "", {height = 150, empty = "Turn on Chat Log to record messages."}),
+				button("act_chat_clear", "Clear Log", "Remove every logged message.", {icon = "trash-2"}),
+			}},
+		},
+	}},
+	{group = "Settings"},
+	{id = "settings", name = "Settings", icon = "settings", children = {
+		{id = "set_interface", name = "General", icon = "sliders-horizontal", page = {
+			{
+				{title = "Menu", rows = {
+					key("ui_menukey", "Menu Key", "Key that opens and closes the menu.", "RightShift"),
+					drop("ui_menumode", "Key Mode", "Press to open and close, or hold to keep it open.", {"Toggle", "Hold"}, "Toggle"),
+					toggle("ui_openload", "Open On Load", "Show the menu when the script starts.", {def = true, nobind = true}),
+					toggle("ui_escclose", "Close With Escape", "Escape closes the menu when no popup is open.", {nobind = true}),
+					toggle("ui_remember", "Remember Page", "Reopen on the page you left.", {def = true, nobind = true}),
+					drop("ui_cursor", "Menu Cursor", "Cursor used while the menu is open.", {"System", "Dot"}, "System"),
+					toggle("ui_button", "UI Button", "A small button on screen that opens and closes the menu.", {def = true, nobind = true}),
+				}},
+			},
+			{
+				{title = "Behavior", rows = {
+					toggle("ui_tooltips", "Tooltips", "Explain options when you hover them.", {def = true, nobind = true}),
+					toggle("ui_anim", "Animations", "Animate transitions.", {def = true, nobind = true}),
+					slider("ui_anim_speed", "Animation Speed", "Speed of every transition.", 50, 200, 100, {suf = "%"}),
+					drop("ui_bindnotify", "On/Off Alerts", "Show a message when something turns on or off.", {"Off", "Keybinds Only", "Always"}, "Keybinds Only"),
+					toggle("ui_confirm", "Ask Before Eject", "Click twice to eject or reset.", {def = true, nobind = true}),
+				}},
+				{title = "About", protected = true, rows = {
+					info("i_script", "Script", "Name of this script.", ""),
+					info("i_author", "Made By", "Who made this script.", ""),
+					info("i_version", "Version", "Version of this script.", ""),
+					info("i_exec", "Executor", "The executor running this script.", ""),
+					row("info", "i_lib", "UI Library", "The interface is built with arvn lib.", {value = "arvn lib", protected = true}),
+					button("act_lib_link", "arvn lib on GitHub", "Copy the link to arvn lib.", {icon = "external-link", protected = true, nobind = true}),
+				}},
+				{title = "Window", rows = {
+					button("act_reset_pos", "Center Window", "Move the menu back to the middle of the screen.", {icon = "move"}),
+					button("act_eject", "Eject", "Unload the menu and everything it created.", {icon = "log-out", danger = true, confirm = true}),
+				}},
+			},
+		}},
+		{id = "set_theme", name = "Appearance", icon = "palette", page = {
+			{
+				{title = "Theme", rows = {
+					drop("ui_theme", "Theme", "Colors of the whole menu.", D.THEME_NAMES, "Dark"),
+					color("ui_accent", "Accent", "Color of switches, sliders and highlights.", "#E0313DFF"),
+					toggle("ui_accent_sync", "Theme Accent", "Picking a theme also picks its accent.", {def = true, nobind = true}),
+				}},
+				{title = "Colors", rows = {
+					color("pal_win", "Background", "Change any color to make your own theme.", "#111113FF"),
+					color("pal_panel", "Panel", "Change any color to make your own theme.", "#1A1A1DFF"),
+					color("pal_card", "Cards", "Change any color to make your own theme.", "#222226FF"),
+					color("pal_text", "Text", "Change any color to make your own theme.", "#EEEEF0FF"),
+					color("pal_sub", "Muted Text", "Change any color to make your own theme.", "#909098FF"),
+				}},
+				{title = "Layout", rows = {
+					slider("ui_scale", "Size", "Size of the whole menu. Applies when you let go.", 75, 130, 100, {suf = "%", commit = true}),
+					slider("ui_elem_scale", "Element Scale", "Fine scale for rows, gaps and text inside the menu.", 75, 150, 100, {suf = "%", commit = true}),
+					drop("ui_density", "Spacing", "Space between rows.", D.DENSITIES, "Comfortable"),
+					slider("ui_radius", "Roundness", "How round the corners are.", 4, 20, 14, {commit = true}),
+					drop("ui_font", "Font", "Font used by the menu.", D.FONTS_UI, "BuilderSans"),
+					drop("ui_toggle", "Switch Style", "Look of every on/off control.", {"Switch", "Square", "Checkbox"}, "Switch"),
+				}},
+				{title = "Resolution", rows = {
+					drop("ui_fit", "Scaling Mode", "How the menu is scaled to your screen. Off keeps the plain pixel size.", D.FIT_MODES, "Off"),
+					drop("ui_dpi", "Device Scaling", "Extra scale for the device or screen density.", D.DPI_MODES, "Off"),
+					slider("ui_refw", "Design Width", "Reference width the menu was designed at.", 960, 3840, 1920, {suf = "px"}),
+					slider("ui_refh", "Design Height", "Reference height the menu was designed at.", 540, 2160, 1080, {suf = "px"}),
+					toggle("ui_clamp", "Clamp Scale", "Limit how small or big the scale is allowed to get.", {nobind = true}),
+					slider("ui_clamp_min", "Min Scale", "Smallest allowed scale.", 40, 150, 75, {suf = "%"}),
+					slider("ui_clamp_max", "Max Scale", "Biggest allowed scale.", 100, 300, 200, {suf = "%"}),
+					toggle("ui_snap", "Pixel Snap", "Round positions and sizes to whole pixels for sharper edges.", {nobind = true}),
+					toggle("ui_hidpi", "Crisp Text", "Use the sharper text renderer where the executor supports it.", {def = true, nobind = true}),
+				}},
+				{title = "Screen Ratio", rows = {
+					drop("ui_aspect", "Aspect Ratio", "Force a screen ratio for the whole interface.", D.ASPECTS, "Off"),
+					slider("ui_aspect_num", "Custom Width", "Width part of a custom ratio.", 1, 48, 4),
+					slider("ui_aspect_den", "Custom Height", "Height part of a custom ratio.", 1, 32, 3),
+					drop("ui_aspect_fit", "Ratio Mode", "How the ratio fills your screen.", D.ASPECT_FITS, "Fit"),
+					drop("ui_anchor", "Anchor", "Where the interface sits inside the ratio box.", D.ASPECT_ANCHORS, "Center"),
+					toggle("ui_bars", "Letterbox Bars", "Draw dark bars over the empty area.", {nobind = true}),
+					color("ui_bars_color", "Bar Color", "Color of the letterbox bars.", "#000000FF"),
+					toggle("ui_topbar", "Avoid Top Bar", "Keep the interface below the Roblox top bar.", {nobind = true}),
+					button("act_res_reset", "Reset Display", "Put every display and ratio option back to default.", {icon = "rotate-ccw"}),
+				}},
+				{title = "World Stretch", rows = {
+					toggle("ws_on", "Stretched View", "Change how the 3D view is stretched. Off leaves your camera alone.", {nobind = true}),
+					drop("ws_aspect", "View Ratio", "Ratio the 3D view is stretched to.", D.WS_ASPECTS, "4:3"),
+					slider("ws_num", "Custom Width", "Width part of a custom view ratio.", 1, 48, 4),
+					slider("ws_den", "Custom Height", "Height part of a custom view ratio.", 1, 32, 3),
+					drop("ws_mode", "View Mode", "How the ratio fills the screen.", D.WS_MODES, "Stretch"),
+					drop("ws_fov_mode", "FOV Axis", "Which axis the field of view applies to.", D.FOV_MODES, "MaxAxis"),
+					slider("ws_fov", "Field Of View", "Camera field of view while stretched.", 40, 120, 90, {suf = "°"}),
+					toggle("ws_aim", "Include Aim FOV", "Also stretch the field of view while aiming down sights.", {nobind = true}),
+				}},
+			},
+			{
+				{title = "Glass", rows = {
+					toggle("ui_glass", "See-Through", "Let the game show through the menu.", {def = true, nobind = true}),
+					slider("ui_glass_amt", "Transparency", "How see-through the glass is.", 0, 100, 45, {suf = "%"}),
+					toggle("ui_rim", "Edge Light", "Bright top edge on every surface.", {def = true, nobind = true}),
+				}},
+				{title = "Behind The Menu", rows = {
+					toggle("ui_blur", "Blur", "Blur the game while the menu is open.", {def = true, nobind = true}),
+					slider("ui_blur_size", "Blur Strength", "How strong the blur is.", 4, 56, 24),
+					toggle("ui_dim", "Darken", "Darken the game while the menu is open.", {def = true, nobind = true}),
+					slider("ui_dim_amt", "Darken Amount", "How dark it gets.", 0, 85, 40, {suf = "%"}),
+				}},
+				{title = "Particles", rows = {
+					drop("fx_style", "Style", "Ambient particles behind the menu.", {"Snow", "Sparkles", "Dust", "Off"}, "Snow"),
+					slider("fx_density", "Density", "Number of particles.", 10, 250, 90),
+					slider("fx_size", "Size", "Particle size.", 1, 6, 3),
+					slider("fx_speed", "Speed", "Movement speed.", 25, 300, 100, {suf = "%"}),
+					toggle("fx_follow", "Follow Cursor", "Particles drift with your mouse movement.", {def = true, nobind = true}),
+				}},
+				{title = "Shape And Style", rows = {
+					drop("ui_style", "Component Style", "A ready-made look for every surface.", D.COMPONENT_STYLES, "Default"),
+					drop("ui_border", "Border Style", "How the outline around surfaces looks.", D.BORDER_STYLES, "Soft"),
+					slider("ui_border_thick", "Border Width", "Thickness of that outline.", 1, 3, 1),
+					toggle("ui_shadow", "Drop Shadows", "Soft shadow under floating surfaces.", {nobind = true}),
+					slider("ui_shadow_size", "Shadow Size", "How far the shadow reaches.", 4, 32, 14),
+					slider("ui_shadow_amt", "Shadow Dark", "How strong the shadow is.", 0, 100, 55, {suf = "%"}),
+					toggle("ui_glow", "Accent Glow", "A soft glow around accent surfaces.", {nobind = true}),
+					slider("ui_glow_amt", "Glow Strength", "How bright the glow is.", 0, 100, 60, {suf = "%"}),
+					toggle("ui_gradient", "Card Gradient", "A subtle vertical gradient on cards and panels.", {nobind = true}),
+					slider("ui_gradient_rot", "Gradient Angle", "Direction of that gradient.", 0, 360, 90, {suf = "°"}),
+					toggle("ui_accent_panel", "Tinted Panels", "Blend a little accent color into panels.", {nobind = true}),
+				}},
+				{title = "Typography", rows = {
+					slider("ui_font_scale", "Text Scale", "Scale of the base text size across the menu.", 75, 150, 100, {suf = "%"}),
+					drop("ui_font_weight", "Font Weight", "Base weight of menu text.", D.FONT_WEIGHTS, "Medium"),
+					slider("ui_icon_scale", "Icon Scale", "Scale of the small icons next to rows.", 75, 150, 100, {suf = "%", commit = true}),
+				}},
+				{title = "Motion", rows = {
+					drop("ui_ease", "Easing", "Shape of every transition curve.", D.EASE_STYLES, "Quint"),
+					drop("ui_motion", "Animation Level", "Calm animations down or push them for a livelier feel.", D.MOTION_MODES, "Off"),
+					toggle("ui_anim_open", "Open Animation", "Slide and scale the menu as it opens.", {def = true, nobind = true}),
+					toggle("ui_anim_theme", "Theme Fade", "Blend colors smoothly when the theme changes.", {def = true, nobind = true}),
+				}},
+			},
+		}},
+		{id = "set_overlays", name = "Overlays", icon = "layers", page = {
+			{
+				{title = "Watermark", rows = {
+					toggle("ov_wm", "Enabled", "Info bar at the top of the screen.", {def = true}),
+					drop("wm_style", "Style", "Look of the bar.", {"Glass", "Solid", "Minimal"}, "Glass"),
+					toggle("wm_fps", "Frame Rate", "Show frames per second.", {def = true, nobind = true}),
+					toggle("wm_ping", "Ping", "Show ping in milliseconds.", {def = true, nobind = true}),
+					toggle("wm_region", "Location", "Show your connection's city and country.", {nobind = true}),
+					toggle("wm_uptime", "Session Time", "Show how long the menu has been running.", {def = true, nobind = true}),
+					toggle("wm_time", "Clock", "Show the local time.", {nobind = true}),
+					toggle("wm_exec", "Executor", "Show the executor you are using.", {def = true, nobind = true}),
+					toggle("wm_user", "Account", "Show your name and avatar.", {def = true, nobind = true}),
+				}},
+				{title = "Keybind List", rows = {
+					toggle("ov_kb", "Enabled", "Floating panel with your bound keys and their state.", {def = true}),
+					toggle("kb_inactive", "Show Inactive", "Also list keybinds that are off.", {def = true, nobind = true}),
+					toggle("kb_hideempty", "Hide When Empty", "Hide the panel when it has nothing to show.", {nobind = true}),
+				}},
+			},
+			{
+				{title = "Keystrokes", rows = {
+					toggle("ov_ks", "Enabled", "Show your key and mouse presses."),
+					drop("ks_layout", "Layout", "Arrangement of the keys.", {"Stacked", "Compact", "Wide"}, "Stacked"),
+					toggle("ks_mouse", "Mouse Buttons", "Show mouse buttons.", {def = true, nobind = true}),
+					toggle("ks_cps", "Clicks Per Second", "Show click speed under the mouse buttons.", {def = true, nobind = true}),
+					toggle("ks_space", "Space Bar", "Show the space bar.", {def = true, nobind = true}),
+				}},
+				{title = "Notifications", rows = {
+					toggle("nt_on", "Enabled", "Show notifications.", {def = true, nobind = true}),
+					drop("nt_pos", "Position", "Screen corner for notifications.", {"Top Right", "Top Center", "Top Left", "Bottom Right", "Bottom Center", "Bottom Left"}, "Top Right"),
+					slider("nt_dur", "Duration", "Seconds each notification stays.", 1, 10, 4, {step = 0.5, suf = "s"}),
+					drop("nt_style", "Style", "Full cards or slim pills.", {"Card", "Compact"}, "Card"),
+					slider("nt_max", "Max On Screen", "Most notifications shown at once.", 1, 8, 5),
+				}},
+				{title = "Positions", rows = {
+					toggle("ov_lock", "Lock Positions", "Stop overlays from being dragged.", {nobind = true}),
+					button("act_ov_reset", "Reset Positions", "Move every overlay back to its default spot.", {icon = "rotate-ccw"}),
+				}},
+			},
+		}},
+		{id = "set_personal", name = "Profile", icon = "user-round", page = {
+			{
+				{title = "Profile", rows = {
+					input("prof_name", "Display Name", "Shown in the sidebar. Leave empty for your Roblox name.", "", {placeholder = "your name"}),
+					input("prof_tag", "Tagline", "Line under your name. Empty shows your username.", "", {placeholder = "@username"}),
+					input("pfp_url", "Picture Link", "Direct PNG or JPG link, for example from catbox.moe. Saved after the first load.", "", {placeholder = "https://files.catbox.moe/..."}),
+					row("buttons", "pfp_btns", "", "", {buttons = {{"act_pfp_load", "Load Picture", "Download the picture link and use it."}, {"act_pfp_reset", "Roblox Avatar", "Go back to your Roblox headshot."}}}),
+				}},
+			},
+			{
+				{title = "Window Background", rows = {
+					toggle("bg_on", "Background Image", "Show a picture behind the menu instead of plain glass.", {nobind = true}),
+					input("bg_url", "Image Link", "Direct link to a PNG or JPG.", "", {placeholder = "https://files.catbox.moe/..."}),
+					button("act_bg_load", "Load Image", "Download the image link and use it as the background.", {icon = "image-plus"}),
+					slider("bg_opacity", "Opacity", "How visible the image is.", 0, 100, 45, {suf = "%"}),
+					slider("bg_dark", "Darken", "Dark layer over the image so text stays readable.", 0, 90, 45, {suf = "%"}),
+					drop("bg_fit", "Fit", "How the image fills the window.", {"Crop", "Fit", "Stretch", "Tile"}, "Crop"),
+				}},
+			},
+		}},
+		{id = "set_sounds", name = "Sounds", icon = "volume-2", page = {
+			{
+				{title = "Sound", rows = {
+					toggle("snd_on", "Sounds", "Play menu sounds.", {def = true, nobind = true}),
+					slider("snd_vol", "Volume", "How loud menu sounds are.", 0, 100, 55, {suf = "%"}),
+				}},
+				{title = "Interface", rows = {
+					drop("snd_click", "Click", "Sound for buttons and rows.", D.SOUND_NAMES, "Soft", {preview = true}),
+					drop("snd_toggle", "Toggle", "Sound when a switch changes.", D.SOUND_NAMES, "Switch", {preview = true}),
+					drop("snd_hover", "Hover", "Sound when the cursor enters a row.", D.SOUND_NAMES, "None", {preview = true}),
+					drop("snd_slider", "Slider", "Tick while dragging sliders.", D.SOUND_NAMES, "Tick", {preview = true}),
+					drop("snd_open", "Menu Open", "Sound when the menu opens.", D.SOUND_NAMES, "Swoosh", {preview = true}),
+				}},
+			},
+			{
+				{title = "Alerts", rows = {
+					drop("snd_notify", "Notification", "Sound for notifications.", D.SOUND_NAMES, "Chime", {preview = true}),
+					drop("snd_bind", "Keybind", "Sound when a keybind fires.", D.SOUND_NAMES, "Pop", {preview = true}),
+					drop("snd_error", "Warning", "Sound for warnings and failed actions.", D.SOUND_NAMES, "Drop", {preview = true}),
+				}},
+			},
+		}},
+		{id = "set_configs", name = "Configs", icon = "folder", page = {
+			{
+				{title = "Your Configs", rows = {
+					row("configlist", "cfg_list", "", ""),
+				}},
+				{title = "Create", rows = {
+					input("cfg_new", "Name", "Name for a new config.", "", {nosave = true, placeholder = "my config"}),
+					button("act_cfg_create", "Save As New Config", "Save the current setup under this name.", {icon = "save"}),
+				}},
+			},
+			{
+				{title = "Autosave", rows = {
+					toggle("cfg_autosave", "Autosave", "Save every change automatically.", {def = true, nobind = true, nosave = true}),
+					info("i_saved", "Status", "When your setup was last written to disk.", "Saved"),
+					drop("cfg_autoload", "Load On Start", "What gets applied when the script starts.", function() local o = {"Autosave"} for _, n in ipairs(D.listConfigs()) do o[#o + 1] = n end return o end, "Autosave", {nosave = true}),
+				}},
+				{title = "Share", rows = {
+					button("act_cfg_export", "Copy Share Code", "Copy your whole setup as a code.", {icon = "share-2"}),
+					input("cfg_import", "Share Code", "Paste a share code here.", "", {nosave = true, placeholder = "ARVN1:..."}),
+					button("act_cfg_import", "Import Code", "Apply the pasted code, or the clipboard.", {icon = "download"}),
+				}},
+				{title = "Reset", rows = {
+					button("act_reset_all", "Reset Settings", "Every option back to default. Configs are kept.", {icon = "rotate-ccw", danger = true, confirm = true}),
+					button("act_reset_everything", "Reset Everything", "Every option back to default and all saved data deleted.", {icon = "trash-2", danger = true}),
+				}},
+			},
+		}},
+	}},
+}
+
+D.BUILTIN = {}
+for _, e in ipairs(NAV_ALL) do
+	if e.id then D.BUILTIN[e.id] = e end
+end
+D.NAV = {}
+D.USER_NAV = {}
+D.CONFIG = {}
+
+D.BUILTIN_GROUPS = {
+	main = {group = "Main", builtin = "main"},
+	utility = {group = "Utility", builtin = "utility"},
+	settings = {group = "Settings", builtin = "settings"},
+}
+
+function D.composeNav()
+	D.navStale = false
+	local cfg = D.CONFIG
+	local G = D.BUILTIN_GROUPS
+	local nav = {}
+	local function add(e) nav[#nav + 1] = e end
+	if cfg.Dashboard then
+		add(G.main)
+		add(D.BUILTIN.home)
+	end
+	local blocks, cur = {}, nil
+	for i, e in ipairs(D.USER_NAV) do
+		if e.group then
+			cur = {head = e, items = {}, i = i, order = e.order or 0}
+			blocks[#blocks + 1] = cur
+		else
+			if not cur then
+				cur = {items = {}, i = 0, order = -1e9}
+				blocks[#blocks + 1] = cur
+			end
+			cur.items[#cur.items + 1] = {e = e, i = i}
+		end
+	end
+	table.sort(blocks, function(a, b)
+		if a.order ~= b.order then return a.order < b.order end
+		return a.i < b.i
+	end)
+	for _, bk in ipairs(blocks) do
+		table.sort(bk.items, function(a, b)
+			local oa, ob = a.e.order or 0, b.e.order or 0
+			if oa ~= ob then return oa < ob end
+			return a.i < b.i
+		end)
+		if bk.head then add(bk.head) end
+		for _, it in ipairs(bk.items) do add(it.e) end
+	end
+	local util = {}
+	if cfg.Server then util[#util + 1] = D.BUILTIN.server end
+	if cfg.Tools then util[#util + 1] = D.BUILTIN.tools end
+	if #util > 0 then
+		add(G.utility)
+		for _, e in ipairs(util) do add(e) end
+	end
+	if cfg.Settings ~= false then
+		add(G.settings)
+		add(D.BUILTIN.settings)
+	end
+	local out, skip = {}, false
+	for _, e in ipairs(nav) do
+		if e.group then
+			skip = e.hidden == true
+			if not skip then out[#out + 1] = e end
+		elseif not skip and not e.hidden and not (e.depends and D.checkConds and not D.checkConds(e.depends)) then
+			local visible = true
+			if e.children then
+				visible = false
+				for _, c in ipairs(e.children) do
+					if not c.hidden and not (c.depends and D.checkConds and not D.checkConds(c.depends)) then visible = true end
+				end
+			end
+			if visible then out[#out + 1] = e end
+		end
+	end
+	local final = {}
+	for i, e in ipairs(out) do
+		local nxt = out[i + 1]
+		if not (e.group and (nxt == nil or nxt.group)) then final[#final + 1] = e end
+	end
+	table.clear(D.NAV)
+	for i, e in ipairs(final) do D.NAV[i] = e end
+	D.registerNav(D.NAV)
+	if D.indexNav then D.indexNav() end
+end
+end
+do
+local B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+local B64MAP = {}
+for i = 1, 64 do B64MAP[string.byte(B64, i)] = i - 1 end
+
+function D.b64decode(s)
+	if crypt and type(crypt.base64decode) == "function" then
+		local ok, r = pcall(crypt.base64decode, s)
+		if ok and type(r) == "string" and #r > 0 then return r end
+	end
+	local out, n, acc, bits = {}, 0, 0, 0
+	for i = 1, #s do
+		local v = B64MAP[string.byte(s, i)]
+		if v then
+			acc = acc * 64 + v
+			bits += 6
+			if bits >= 8 then
+				bits -= 8
+				local p = 2 ^ bits
+				n += 1
+				out[n] = string.char(math.floor(acc / p) % 256)
+				acc = acc % p
+			end
+		end
+	end
+	return table.concat(out, "", 1, n)
+end
+
+function D.b64encode(s)
+	if crypt and type(crypt.base64encode) == "function" then
+		local ok, r = pcall(crypt.base64encode, s)
+		if ok and type(r) == "string" and #r > 0 then return r end
+	end
+	local out = {}
+	for i = 1, #s, 3 do
+		local a, b, c = string.byte(s, i, i + 2)
+		local n = a * 65536 + (b or 0) * 256 + (c or 0)
+		local c1 = n // 262144 % 64
+		local c2 = n // 4096 % 64
+		local c3 = n // 64 % 64
+		local c4 = n % 64
+		out[#out + 1] = string.sub(B64, c1 + 1, c1 + 1) .. string.sub(B64, c2 + 1, c2 + 1)
+			.. (b and string.sub(B64, c3 + 1, c3 + 1) or "=") .. (c and string.sub(B64, c4 + 1, c4 + 1) or "=")
+	end
+	return table.concat(out)
+end
+
+function D.parseColor(s)
+	s = string.gsub(tostring(s or ""), "#", "")
+	local r, g, b = tonumber(string.sub(s, 1, 2), 16), tonumber(string.sub(s, 3, 4), 16), tonumber(string.sub(s, 5, 6), 16)
+	local a = #s >= 8 and tonumber(string.sub(s, 7, 8), 16) or 255
+	if not (r and g and b) then return Color3.new(1, 1, 1), 1 end
+	return Color3.fromRGB(r, g, b), (a or 255) / 255
+end
+
+function D.toHex(c, a)
+	local function q(x) return math.clamp(math.floor(x * 255 + 0.5), 0, 255) end
+	return string.format("#%02X%02X%02X%02X", q(c.R), q(c.G), q(c.B), q(a or 1))
+end
+
+function D.col(key)
+	return (D.parseColor(S[key]))
+end
+
+local EASE_MAP = {Quint = Enum.EasingStyle.Quint, Sine = Enum.EasingStyle.Sine, Quad = Enum.EasingStyle.Quad, Cubic = Enum.EasingStyle.Cubic, Back = Enum.EasingStyle.Back, Elastic = Enum.EasingStyle.Elastic, Bounce = Enum.EasingStyle.Bounce, Linear = Enum.EasingStyle.Linear}
+
+function D.easeStyle()
+	return EASE_MAP[S.ui_ease] or Enum.EasingStyle.Quint
+end
+
+function D.motionMul()
+	local m = S.ui_motion
+	if m == "Reduce" then return 0.6 end
+	if m == "Strong" then return 1.25 end
+	return 1
+end
+
+function D.tweenTime(t)
+	local speed = (S.ui_anim_speed or 100) / 100
+	local mt = t * D.motionMul()
+	if S.ui_motion == "Reduce" then mt = math.min(mt, 0.22) end
+	return mt / math.max(speed, 0.1)
+end
+
+function D.tween(o, t, goal, style, dir)
+	if not o then return end
+	if S.ui_anim == false then
+		for k, v in pairs(goal) do o[k] = v end
+		return
+	end
+	local st = style or D.easeStyle()
+	if S.ui_motion == "Strong" and st == Enum.EasingStyle.Quint then st = Enum.EasingStyle.Back end
+	local tw = TweenService:Create(o, TweenInfo.new(D.tweenTime(t), st, dir or Enum.EasingDirection.Out), goal)
+	tw:Play()
+	return tw
+end
+
+-- Virtual viewport / resolution system -------------------------------------
+-- By default (fit Off, ratio Off) the virtual viewport equals the real screen
+-- and every helper below behaves exactly like plain screen-space layout, so
+-- nothing changes unless the user opts in. The interface is laid out in
+-- "virtual" units inside D.L.vp; a single UIScale maps those units to pixels.
+D.RES = {real = Vector2.new(1920, 1080), box = Vector2.new(1920, 1080), origin = Vector2.new(0, 0), virtual = Vector2.new(0, 0), factor = 1, ar = nil, on = false}
+
+local RES_ANCHOR = {
+	["Center"] = Vector2.new(0.5, 0.5), ["Top Left"] = Vector2.new(0, 0), ["Top"] = Vector2.new(0.5, 0),
+	["Top Right"] = Vector2.new(1, 0), ["Left"] = Vector2.new(0, 0.5), ["Right"] = Vector2.new(1, 0.5),
+	["Bottom Left"] = Vector2.new(0, 1), ["Bottom"] = Vector2.new(0.5, 1), ["Bottom Right"] = Vector2.new(1, 1),
+}
+
+function D.resRatio()
+	local a = S.ui_aspect
+	if not a or a == "Off" then return nil end
+	if a == "Custom" then
+		local n = tonumber(S.ui_aspect_num) or 4
+		local d = tonumber(S.ui_aspect_den) or 3
+		if d <= 0 then d = 1 end
+		return n / d
+	end
+	return D.ASPECT_RATIOS[a]
+end
+
+function D.wsRatio()
+	local a = S.ws_aspect
+	if not a or a == "Off" then return nil end
+	if a == "Custom" then
+		local n = tonumber(S.ws_num) or 4
+		local d = tonumber(S.ws_den) or 3
+		if d <= 0 then d = 1 end
+		return n / d
+	end
+	return D.WS_RATIOS[a]
+end
+
+function D.dpiFactor()
+	local mode = S.ui_dpi or "Off"
+	if mode == "Off" then return 1 end
+	if mode == "Auto" then
+		if UIS.VREnabled then mode = "VR"
+		elseif UIS.TouchEnabled and not UIS.MouseEnabled then mode = "Touch"
+		elseif UIS.GamepadEnabled and not UIS.MouseEnabled then mode = "Console"
+		else mode = "Desktop" end
+	end
+	if mode == "Compact" then return 0.9 end
+	if mode == "Touch" then return 1.1 end
+	if mode == "Console" then return 1.15 end
+	if mode == "VR" then return 1.25 end
+	return 1
+end
+
+function D.resCompute()
+	local R = D.RES
+	local gui = D.gui
+	local real = (gui and gui.AbsoluteSize.X > 10 and gui.AbsoluteSize)
+		or (workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize)
+		or Vector2.new(1920, 1080)
+	R.real = real
+	local ar = D.resRatio()
+	R.ar = ar
+	local mode = S.ui_aspect_fit or "Stretch"
+	local boxX, boxY, boxW, boxH = 0, 0, real.X, real.Y
+	if ar and ar > 0 and mode ~= "Stretch" then
+		local w, h = real.Y * ar, real.Y
+		if w > real.X then w, h = real.X, real.X / ar end
+		if mode == "Fill" or mode == "Cover" or mode == "Crop" then
+			if w < real.X then w, h = real.X, real.X / ar end
+			if h < real.Y then h, w = real.Y, real.Y * ar end
+		end
+		local a = RES_ANCHOR[S.ui_anchor or "Center"] or Vector2.new(0.5, 0.5)
+		boxW, boxH = w, h
+		boxX = (real.X - w) * a.X
+		boxY = (real.Y - h) * a.Y
+	end
+	R.box = Vector2.new(boxW, boxH)
+	R.origin = Vector2.new(boxX, boxY)
+
+	local fit = S.ui_fit or "Off"
+	local refW = math.max(1, tonumber(S.ui_refw) or 1920)
+	local refH = math.max(1, tonumber(S.ui_refh) or 1080)
+	local f = 1
+	if mode == "Center" then
+		f = 1
+	elseif fit == "Scale" then
+		f = boxW / refW
+	elseif fit == "Hybrid" then
+		f = math.min(boxW / refW, boxH / refH)
+	else
+		f = 1
+	end
+	f = f * D.dpiFactor()
+	if S.ui_clamp then
+		local lo = (tonumber(S.ui_clamp_min) or 75) / 100
+		local hi = (tonumber(S.ui_clamp_max) or 200) / 100
+		f = math.clamp(f, math.min(lo, hi), math.max(lo, hi))
+	end
+	if not (f > 0) then f = 1 end
+	R.factor = f
+	local vw, vh = boxW / f, boxH / f
+	if S.ui_snap then vw, vh = math.floor(vw + 0.5), math.floor(vh + 0.5) end
+	R.virtual = Vector2.new(math.max(1, vw), math.max(1, vh))
+	R.on = (fit ~= "Off") or (ar ~= nil) or (f ~= 1)
+	return R
+end
+
+function D.resBars()
+	local R, L = D.RES, D.L
+	if not (L and L.bars) then return end
+	local show = (S.ui_bars and R.ar ~= nil) and (R.box.X < R.real.X - 1 or R.box.Y < R.real.Y - 1)
+	L.bars.Visible = show and true or false
+	if not show then return end
+	local c = D.parseColor(S.ui_bars_color or "#000000FF")
+	local o, b, real = R.origin, R.box, R.real
+	local function put(f, x, y, w, h)
+		f.Position = UDim2.fromOffset(math.floor(x + 0.5), math.floor(y + 0.5))
+		f.Size = UDim2.fromOffset(math.max(0, math.floor(w + 0.5)), math.max(0, math.floor(h + 0.5)))
+		f.BackgroundColor3 = c
+		f.BackgroundTransparency = 0
+	end
+	put(L.barTop, 0, 0, real.X, o.Y)
+	put(L.barBottom, 0, o.Y + b.Y, real.X, real.Y - (o.Y + b.Y))
+	put(L.barLeft, 0, o.Y, o.X, b.Y)
+	put(L.barRight, o.X + b.X, o.Y, real.X - (o.X + b.X), b.Y)
+end
+
+function D.resUpdate()
+	local gui = D.gui
+	if gui then
+		local wantIgnore = not (S.ui_topbar and true or false)
+		if gui.IgnoreGuiInset ~= wantIgnore then
+			pcall(function() gui.IgnoreGuiInset = wantIgnore end)
+		end
+	end
+	local R = D.resCompute()
+	local vp = D.L and D.L.vp
+	if vp then
+		vp.Position = UDim2.fromOffset(math.floor(R.origin.X + 0.5), math.floor(R.origin.Y + 0.5))
+		vp.Size = UDim2.fromOffset(math.floor(R.virtual.X + 0.5), math.floor(R.virtual.Y + 0.5))
+		local sc = vp:FindFirstChildOfClass("UIScale")
+		if not sc then sc = Instance.new("UIScale") sc.Parent = vp end
+		sc.Scale = R.factor
+	end
+	D.resBars()
+	if D.W_STATE and D.W_STATE.win then D.setWinScale(false) end
+	return R
+end
+D.resApply = D.resUpdate
+
+function D.vsize(o)
+	local s = o.AbsoluteSize
+	local f = D.RES.factor
+	if f and f ~= 1 then s /= f end
+	return s
+end
+
+function D.spos(o)
+	local p = o.AbsolutePosition
+	local vp = D.L and D.L.vp
+	local base = (vp and vp.AbsolutePosition) or (D.gui and D.gui.AbsolutePosition)
+	if base then p -= base end
+	local f = D.RES.factor
+	if f and f ~= 1 then p /= f end
+	return p
+end
+
+function D.inRect(o, x, y, padding)
+	if not o or not o.Parent then return false end
+	padding = padding or 0
+	local p, s = D.spos(o), D.vsize(o)
+	return x >= p.X - padding and x <= p.X + s.X + padding and y >= p.Y - padding and y <= p.Y + s.Y + padding
+end
+
+function D.mouse()
+	local m = UIS:GetMouseLocation()
+	local vp = D.L and D.L.vp
+	local base = (vp and vp.AbsolutePosition) or (D.gui and D.gui.AbsolutePosition)
+	if base then m -= base end
+	local f = D.RES.factor
+	if f and f ~= 1 then m /= f end
+	return m
+end
+
+function D.viewport()
+	local R = D.RES
+	if R and R.virtual.X > 10 then return R.virtual end
+	if D.gui and D.gui.AbsoluteSize.X > 10 then return D.gui.AbsoluteSize end
+	local cam = workspace.CurrentCamera
+	return cam and cam.ViewportSize or Vector2.new(1920, 1080)
+end
+
+function D.fmtTime(sec)
+	sec = math.floor(sec)
+	if sec >= 3600 then
+		return string.format("%d:%02d:%02d", sec // 3600, (sec % 3600) // 60, sec % 60)
+	end
+	return string.format("%d:%02d", sec // 60, sec % 60)
+end
+
+function D.clone(v)
+	if type(v) == "table" then return table.clone(v) end
+	return v
+end
+
+function D.fetchImage(url, name)
+	url = tostring(url or "")
+	url = string.gsub(url, "^%s+", "")
+	url = string.gsub(url, "%s+$", "")
+	if not string.match(url, "^https?://") then return nil, "That is not a web link." end
+	if not (writefile and getcustomasset) then return nil, "Your executor cannot load custom images." end
+	local body
+	local ok = pcall(function()
+		local req = (syn and syn.request) or request or http_request
+		if req then
+			local r = req({Url = url, Method = "GET"})
+			if r and (r.StatusCode == nil or r.StatusCode < 400) then body = r.Body end
+		else
+			body = game:HttpGet(url)
+		end
+	end)
+	if not ok or type(body) ~= "string" or #body < 64 then return nil, "Could not download that link." end
+	local ext
+	if string.sub(body, 1, 4) == "\137PNG" then
+		ext = "png"
+	elseif string.sub(body, 1, 3) == "\255\216\255" then
+		ext = "jpg"
+	else
+		return nil, "The link is not a PNG or JPG image."
+	end
+	D.ensureDir(DIR)
+	D.ensureDir(DIR .. "/images")
+	local h = #body
+	for i = 1, #body, 97 do h = (h * 31 + string.byte(body, i)) % 2147483647 end
+	local path = DIR .. "/images/" .. name .. "_" .. string.format("%x", h) .. "." .. ext
+	local ok2, asset = pcall(function()
+		writefile(path, body)
+		return getcustomasset(path)
+	end)
+	if not ok2 or not asset then return nil, "Could not save the image." end
+	local old = D.META[name .. "_file"]
+	if old and old ~= path and delfile then pcall(delfile, old) end
+	D.META[name .. "_file"] = path
+	D.writeMeta()
+	return asset
+end
+
+function D.cachedImage(name)
+	if not (isfile and getcustomasset) then return nil end
+	local path = D.META[name .. "_file"]
+	if type(path) ~= "string" then return nil end
+	local ok, exists = pcall(isfile, path)
+	if ok and exists then
+		local ok2, asset = pcall(getcustomasset, path)
+		if ok2 then return asset end
+	end
+	return nil
+end
+
+function D.compact(list)
+	local keep = {}
+	for _, e in ipairs(list) do
+		if e[1].Parent then keep[#keep + 1] = e end
+	end
+	return keep
+end
+end
+do
+local DEF, NOSAVE, WATCH, DEF_BIND = {}, {}, {}, {}
+local BIND = UI.Binds
+local LABELS, DESCS, ACTION_BIND, INDEX = {}, {}, {}, {}
+local INDEXED = {}
+D.SAVED = {}
+D.DEF, D.NOSAVE, D.WATCH, D.BIND, D.DEF_BIND = DEF, NOSAVE, WATCH, BIND, DEF_BIND
+D.LABELS, D.DESCS, D.ACTION_BIND, D.INDEX = LABELS, DESCS, ACTION_BIND, INDEX
+D.MODES = {"Toggle", "Hold", "Always", "Release"}
+D.META = {}
+
+function D.watch(k, fn)
+	local l = WATCH[k]
+	if not l then
+		l = {}
+		WATCH[k] = l
+	end
+	l[fn] = true
+	return function() l[fn] = nil end
+end
+
+function D.fire(k)
+	local l = WATCH[k]
+	if l then
+		local list = {}
+		for fn in pairs(l) do list[#list + 1] = fn end
+		local v = S[k]
+		for _, fn in ipairs(list) do
+			pcall(fn, v)
+		end
+	end
+	local any = WATCH["*"]
+	if any and k ~= "*" then
+		local list = {}
+		for fn in pairs(any) do list[#list + 1] = fn end
+		for _, fn in ipairs(list) do
+			pcall(fn, k, S[k])
+		end
+	end
+end
+
+local dirty, lastChange = false, 0
+function D.markDirty()
+	dirty = true
+	lastChange = os.clock()
+	if S.__save ~= "saving" then
+		S.__save = "saving"
+		D.fire("__save")
+	end
+end
+
+function D.set(k, v)
+	if S[k] == v and type(v) ~= "table" then return end
+	S[k] = v
+	D.fire(k)
+	if DEF[k] ~= nil and not NOSAVE[k] then D.markDirty() end
+end
+
+function D.getBind(flag)
+	local b = BIND[flag]
+	if not b then
+		b = {key = "None", mode = "Toggle", list = true}
+		BIND[flag] = b
+	end
+	return b
+end
+
+function D.bindChanged(flag)
+	D.fire("__bind:" .. flag)
+	D.fire("__binds")
+	D.markDirty()
+end
+
+local function expand(s, g)
+	if not g then return s end
+	return (string.gsub(s, "{g}", g))
+end
+
+local function register(r, g, gLabel, ctx, path, pageId, parentId)
+	local id = r.id and expand(r.id, g)
+	if not id then return end
+	local def = r.def
+	if r.gdef and g then def = r.gdef[g] end
+	if r.t == "toggle" then
+		if DEF[id] == nil then DEF[id] = def or false end
+		if r.bind or r.mode then
+			if BIND[id] == nil then BIND[id] = {key = r.bind or "None", mode = r.mode or "Toggle", list = true} end
+			if DEF_BIND[id] == nil then DEF_BIND[id] = {key = r.bind or "None", mode = r.mode or "Toggle", list = true} end
+		end
+	elseif r.t == "slider" or r.t == "dropdown" or r.t == "color" or r.t == "keybind" or r.t == "input" then
+		if DEF[id] == nil then DEF[id] = D.clone(def) end
+	elseif r.t == "info" then
+		if S[id] == nil then S[id] = r.value or "" end
+	elseif r.t == "button" then
+		ACTION_BIND[id] = true
+	elseif r.t == "buttons" and r.buttons then
+		for _, b in ipairs(r.buttons) do
+			ACTION_BIND[b[1]] = true
+			LABELS[b[1]] = b[2]
+			DESCS[b[1]] = b[3]
+			local bkey = tostring(pageId) .. "|" .. b[1]
+			if not INDEXED[bkey] then
+				INDEXED[bkey] = true
+				INDEX[#INDEX + 1] = {id = b[1], label = b[2], desc = b[3] or "", page = pageId, path = path}
+			end
+		end
+	end
+	if r.color then
+		local cid = expand(r.colorId or (r.id .. "_color"), g)
+		local cdef = r.color
+		if r.gcolor and g then cdef = r.gcolor[g] end
+		if DEF[cid] == nil then DEF[cid] = cdef end
+	end
+	if r.nosave then NOSAVE[id] = true end
+	local label = r.label or ""
+	if label == "Enabled" and ctx then label = ctx end
+	if gLabel then label = label .. " · " .. gLabel end
+	if LABELS[id] == nil then LABELS[id] = label end
+	DESCS[id] = r.desc
+	local ikey = tostring(pageId) .. "|" .. tostring(r.id)
+	local indexable = {toggle = true, slider = true, dropdown = true, color = true, input = true, keybind = true, link = true, button = true, segment = true}
+	if (not g or g == D.GROUPS[1][1]) and not INDEXED[ikey] and r.label and r.label ~= "" and indexable[r.t] then
+		INDEXED[ikey] = true
+		INDEX[#INDEX + 1] = {id = r.id, label = r.label, desc = r.desc or "", kw = r.keywords and string.lower(r.keywords) or nil, page = pageId, path = path, parent = parentId, grouped = g ~= nil}
+	end
+	if r.sub then
+		for _, card in ipairs(r.sub.cards) do
+			for _, sr in ipairs(card) do
+				register(sr, g, gLabel, r.sub.title or r.label, path .. "  ›  " .. (r.label or ""), pageId, r.id)
+			end
+		end
+	end
+end
+
+local function scan(list, parentName)
+	for _, e in ipairs(list) do
+		if e.page then
+			local path = parentName and (parentName .. "  ›  " .. e.name) or e.name
+			for _, col in ipairs(e.page) do
+				if not col.preview then
+					for _, sec in ipairs(col) do
+						for _, r in ipairs(sec.rows) do
+							if e.grouped then
+								for _, gr in ipairs(D.GROUPS) do
+									register(r, gr[1], gr[2], e.name, path, e.id)
+								end
+							else
+								register(r, nil, nil, e.name, path, e.id)
+							end
+						end
+					end
+				end
+			end
+		end
+		if e.children then scan(e.children, e.name) end
+	end
+end
+for k, v in pairs(D.EXTRA_DEFS or {}) do
+	if DEF[k] == nil then DEF[k] = D.clone(v) end
+end
+for k, v in pairs(DEF) do S[k] = D.clone(v) end
+S.__save = "saved"
+
+local validKey
+function D.registerNav(list)
+	scan(list)
+	for k, v in pairs(DEF) do
+		if S[k] == nil then
+			local saved = D.SAVED[k]
+			if saved ~= nil and type(saved) == type(v) and (not validKey or validKey(k, saved)) then
+				S[k] = D.clone(saved)
+			else
+				S[k] = D.clone(v)
+			end
+		end
+	end
+end
+
+function D.registerFlag(id, def, opts)
+	opts = opts or {}
+	if DEF[id] == nil then DEF[id] = D.clone(def) end
+	if opts.nosave then NOSAVE[id] = true end
+	if opts.label then LABELS[id] = opts.label end
+	if S[id] == nil then
+		local saved = D.SAVED[id]
+		if saved ~= nil and type(saved) == type(def) then S[id] = D.clone(saved) else S[id] = D.clone(def) end
+	end
+end
+
+local function cfgDir()
+	local sub = D.CONFIG and D.CONFIG.SubFolder
+	return DIR .. "/configs" .. (sub and ("/" .. tostring(sub)) or "")
+end
+local function metaPath() return DIR .. "/meta.json" end
+local function autoPath() return DIR .. "/autosave.json" end
+local function fsOk() return writefile and readfile and isfile end
+D.fsOk = fsOk
+
+function D.readMeta()
+	if not fsOk() then return end
+	pcall(function()
+		if isfile(metaPath()) then
+			local m = HttpService:JSONDecode(readfile(metaPath()))
+			if type(m) == "table" then D.META = m end
+		end
+	end)
+end
+
+function D.writeMeta()
+	if not fsOk() then return end
+	D.ensureDir(DIR)
+	pcall(writefile, metaPath(), HttpService:JSONEncode(D.META))
+end
+
+local LAYOUT_KEYS = {"win_w", "win_h", "win_x", "win_y", "wm_x", "wm_y", "kb_x", "kb_y", "ks_x", "ks_y", "ub_x", "ub_y"}
+function D.snapshot(withLayout)
+	local out = {}
+	for k in pairs(DEF) do
+		if not NOSAVE[k] then out[k] = S[k] end
+	end
+	local b = {}
+	for f, x in pairs(BIND) do
+		b[f] = {x.key, x.mode, x.list ~= false}
+	end
+	out.__binds = b
+	out.__version = UI.Version
+	if withLayout and D.META then
+		local l = {}
+		for _, k in ipairs(LAYOUT_KEYS) do l[k] = D.META[k] end
+		for k, v in pairs(D.META) do
+			if type(k) == "string" and string.find(k, "^wg_") then l[k] = v end
+		end
+		out.__layout = l
+	end
+	return out
+end
+
+function D.applyLayout(l)
+	if type(l) ~= "table" or not D.META then return end
+	for _, k in ipairs(LAYOUT_KEYS) do D.META[k] = tonumber(l[k]) end
+	for k, v in pairs(l) do
+		if type(k) == "string" and string.find(k, "^wg_") then D.META[k] = tonumber(v) end
+	end
+	D.writeMeta()
+	if D.W_STATE and D.W_STATE.win and D.META.win_x and D.META.win_y then
+		D.W_STATE.target = Vector2.new(D.META.win_x, D.META.win_y)
+	end
+	if D.requestRebuild and D.W_STATE and D.W_STATE.win then D.requestRebuild() end
+end
+
+validKey = function(k, v)
+	if k == "ui_menukey" then
+		return type(v) == "string" and v ~= "None" and not string.find(v, "^MouseButton")
+	end
+	return true
+end
+
+function D.applySnapshot(data)
+	if type(data) ~= "table" then return false end
+	for k, v in pairs(data) do
+		if k ~= "__binds" and string.sub(k, 1, 2) ~= "__" then D.SAVED[k] = D.clone(v) end
+	end
+	D.bulk = true
+	for k, v in pairs(data) do
+		if DEF[k] ~= nil and not NOSAVE[k] and type(v) == type(DEF[k]) and validKey(k, v) then pcall(D.set, k, D.clone(v)) end
+	end
+	D.bulk = false
+	D.fire("ui_theme")
+	if type(data.__binds) == "table" then
+		for f in pairs(BIND) do
+			if data.__binds[f] == nil and not string.find(f, "^__") then
+				local d = DEF_BIND[f]
+				if d then BIND[f] = {key = d.key, mode = d.mode, list = d.list} else BIND[f] = nil end
+				D.fire("__bind:" .. f)
+			end
+		end
+		for f, x in pairs(data.__binds) do
+			if type(x) == "table" and type(x[1]) == "string" then
+				BIND[f] = {key = x[1], mode = table.find(D.MODES, x[2]) and x[2] or "Toggle", list = x[3] ~= false}
+				if BIND[f].mode == "Always" or BIND[f].mode == "Release" then
+					if DEF[f] ~= nil then D.set(f, true) end
+				end
+				D.fire("__bind:" .. f)
+			end
+		end
+		D.fire("__binds")
+		D.markDirty()
+	end
+	return true
+end
+
+function D.listConfigs()
+	local out = {}
+	pcall(function()
+		if listfiles and isfolder and isfolder(cfgDir()) then
+			for _, f in ipairs(listfiles(cfgDir())) do
+				local n = string.match(f, "([^/\\]+)%.json$")
+				if n then out[#out + 1] = n end
+			end
+		end
+	end)
+	table.sort(out, function(a, b) return string.lower(a) < string.lower(b) end)
+	return out
+end
+
+function D.cleanName(n)
+	n = string.gsub(tostring(n or ""), "[^%w%-_ ]", "")
+	n = string.gsub(n, "^%s+", "")
+	n = string.gsub(n, "%s+$", "")
+	return string.sub(n, 1, 32)
+end
+
+function D.saveConfig(name)
+	name = D.cleanName(name)
+	if not fsOk() or name == "" then return false end
+	D.ensureDir(DIR)
+	D.ensureDir(DIR .. "/configs")
+	D.ensureDir(cfgDir())
+	local snap = D.snapshot(true)
+	snap.__saved = os.time()
+	return pcall(writefile, cfgDir() .. "/" .. name .. ".json", HttpService:JSONEncode(snap))
+end
+
+function D.readConfig(name)
+	if not fsOk() then return nil end
+	local ok, data = pcall(function()
+		local p = cfgDir() .. "/" .. name .. ".json"
+		if not isfile(p) then return nil end
+		return HttpService:JSONDecode(readfile(p))
+	end)
+	if ok and type(data) == "table" then return data end
+end
+
+function D.loadConfig(name)
+	local data = D.readConfig(name)
+	if not data then return false end
+	local ok = D.applySnapshot(data)
+	if ok and data.__layout then D.applyLayout(data.__layout) end
+	if ok and D.syncImages then D.syncImages() end
+	return ok
+end
+
+function D.deleteConfig(name)
+	if not delfile then return false end
+	return pcall(delfile, cfgDir() .. "/" .. name .. ".json")
+end
+
+function D.exportCode()
+	return "ARVN1:" .. D.b64encode(HttpService:JSONEncode(D.snapshot()))
+end
+
+function D.importCode(raw)
+	raw = tostring(raw or "")
+	raw = string.gsub(raw, "%s", "")
+	local payload = string.match(raw, "^ARVN1:(.+)$")
+	local json = payload and D.b64decode(payload) or raw
+	local ok, data = pcall(function() return HttpService:JSONDecode(json) end)
+	if not ok or type(data) ~= "table" then return false end
+	local applied = D.applySnapshot(data)
+	if applied and D.syncImages then D.syncImages() end
+	return applied
+end
+
+function D.writeAutosave()
+	if not fsOk() or S.cfg_autosave == false then return end
+	D.ensureDir(DIR)
+	pcall(writefile, autoPath(), HttpService:JSONEncode(D.snapshot()))
+end
+
+function D.readAutosave()
+	if not fsOk() then return nil end
+	local ok, data = pcall(function()
+		if not isfile(autoPath()) then return nil end
+		return HttpService:JSONDecode(readfile(autoPath()))
+	end)
+	if ok and type(data) == "table" then return data end
+end
+
+task.spawn(function()
+	while D.alive do
+		task.wait(0.4)
+		if not D.alive then break end
+		if dirty and os.clock() - lastChange > 0.9 then
+			dirty = false
+			D.writeAutosave()
+			S.__save = "saved"
+			D.fire("__save")
+		end
+	end
+end)
+
+function D.applyPrev()
+	if not PREV or type(PREV.flags) ~= "table" then return false end
+	for k, v in pairs(PREV.flags) do
+		if string.sub(k, 1, 2) ~= "__" then D.SAVED[k] = D.clone(v) end
+	end
+	for k, v in pairs(PREV.flags) do
+		if DEF[k] ~= nil and type(v) == type(DEF[k]) and validKey(k, v) then S[k] = D.clone(v) end
+	end
+	S.cfg_current = PREV.flags.cfg_current
+	if type(PREV.binds) == "table" then
+		for f, b in pairs(PREV.binds) do
+			if type(b) == "table" and type(b.key) == "string" then
+				BIND[f] = {key = b.key, mode = table.find(D.MODES, b.mode) and b.mode or "Toggle", list = b.list ~= false}
+			end
+		end
+	end
+	return true
+end
+
+D.validKey = validKey
+end
+do
+local PALETTES = {
+	Dark = {win = "111113", panel = "19191C", card = "212125", field = "29292E", hover = "313137", pop = "161619", text = "EEEEF0", label = "D3D3D8", sub = "8F8F97", dim = "6A6A72", off = "34343A", knobOff = "8C8C93", accent = "E0313DFF"},
+	Gray = {win = "131416", panel = "1B1C1F", card = "232428", field = "2B2D31", hover = "33353A", pop = "17181B", text = "ECEDEF", label = "D0D2D6", sub = "8C9097", dim = "686C73", off = "36383D", knobOff = "8A8E95", accent = "3D8BFFFF"},
+	Blue = {win = "0B0F17", panel = "111725", card = "18202F", field = "202A3B", hover = "283246", pop = "0E131E", text = "E8EEF8", label = "C9D2E2", sub = "8793A8", dim = "5F6B80", off = "2A3448", knobOff = "8490A6", accent = "3FB6D8FF"},
+	Green = {win = "0D1210", panel = "141B18", card = "1B2420", field = "232E29", hover = "2A3731", pop = "101713", text = "E8F1EC", label = "CAD8D0", sub = "899A90", dim = "627268", off = "2C3832", knobOff = "89978F", accent = "3CC48AFF"},
+	Purple = {win = "110E17", panel = "191521", card = "211B2B", field = "292235", hover = "31293F", pop = "14111B", text = "F0ECF6", label = "D6CFE2", sub = "958CA5", dim = "6D657D", off = "352D42", knobOff = "90889F", accent = "9A6BFFFF"},
+	Orange = {win = "14100E", panel = "1D1714", card = "261F1B", field = "2F2622", hover = "372D28", pop = "191310", text = "F4EEEA", label = "DDD2CB", sub = "9F9289", dim = "766A62", off = "3A302B", knobOff = "9A8E86", accent = "FF8A3DFF"},
+	Pink = {win = "140E11", panel = "1D1519", card = "261C21", field = "2F2329", hover = "382A31", pop = "181114", text = "F6ECF0", label = "E0D0D7", sub = "A28E97", dim = "79676F", off = "3C2E35", knobOff = "9D8B93", accent = "FF5C93FF"},
+	Light = {win = "E9E9EE", panel = "F6F6F9", card = "FFFFFF", field = "EDEDF2", hover = "E3E3EA", pop = "FBFBFD", text = "17171C", label = "2B2B33", sub = "6B6B76", dim = "90909B", off = "D2D2DA", knobOff = "FFFFFF", accent = "2F6BFFFF", light = true},
+	AMOLED = {win = "000000", panel = "060607", card = "0D0D0F", field = "141417", hover = "1C1C20", pop = "050506", text = "F2F2F4", label = "D6D6DB", sub = "8E8E96", dim = "68686F", off = "2A2A2F", knobOff = "86868D", accent = "E0313DFF"},
+	Contrast = {win = "000000", panel = "0A0A0A", card = "141414", field = "1E1E1E", hover = "2A2A2A", pop = "050505", text = "FFFFFF", label = "FFFFFF", sub = "C8C8C8", dim = "9A9A9A", off = "3A3A3A", knobOff = "FFFFFF", accent = "FFD400FF"},
+}
+D.PALETTES = PALETTES
+D.THEME_ALIAS = {
+	Midnight = "Dark", Graphite = "Gray", Abyss = "Blue", Forest = "Green", Orchid = "Purple", Amethyst = "Purple",
+	Ember = "Orange", Blush = "Pink", ["Rosé"] = "Pink", Porcelain = "Light",
+}
+function D.themeName(name)
+	if name ~= nil and PALETTES[name] then return name end
+	return D.THEME_ALIAS[name] or name
+end
+
+function D.addPalette(name, p)
+	local function hx(v, fb)
+		if typeof(v) == "Color3" then return v:ToHex() end
+		if type(v) == "string" then return string.upper(string.sub(string.gsub(v, "#", ""), 1, 6)) end
+		return fb
+	end
+	local function shade(h, amt)
+		local c = Color3.fromHex(h)
+		local hh, s, v = c:ToHSV()
+		return Color3.fromHSV(hh, s, math.clamp(v + amt, 0, 1)):ToHex()
+	end
+	local win = hx(p.Background or p.win, "111113")
+	local light = select(3, Color3.fromHex(win):ToHSV()) > 0.6
+	local dir = light and -1 or 1
+	local card = hx(p.Card or p.card, shade(win, 0.07 * dir))
+	local text = hx(p.Text or p.text, light and "17171C" or "EEEEF0")
+	local sub = hx(p.Subtext or p.sub, Color3.fromHex(text):Lerp(Color3.fromHex(win), 0.45):ToHex())
+	PALETTES[name] = {
+		win = win,
+		panel = hx(p.Panel or p.panel, shade(win, 0.03 * dir)),
+		card = card,
+		field = hx(p.Field or p.field, shade(card, 0.035 * dir)),
+		hover = hx(p.Hover or p.hover, shade(card, 0.07 * dir)),
+		pop = hx(p.Popup or p.pop, shade(win, 0.02 * dir)),
+		text = text,
+		label = hx(p.Label or p.label, Color3.fromHex(text):Lerp(Color3.fromHex(sub), 0.25):ToHex()),
+		sub = sub,
+		dim = hx(p.Dim or p.dim, Color3.fromHex(sub):Lerp(Color3.fromHex(win), 0.3):ToHex()),
+		off = hx(p.Off or p.off, shade(card, 0.08 * dir)),
+		knobOff = hx(p.Knob or p.knobOff, light and "FFFFFF" or sub),
+		accent = hx(p.Accent or p.accent, "E0313D") .. "FF",
+		light = light,
+	}
+	if not table.find(D.THEME_NAMES, name) then
+		table.insert(D.THEME_NAMES, math.max(1, #D.THEME_NAMES), name)
+	end
+	return PALETTES[name]
+end
+
+local function hex(h) return Color3.fromHex(h) end
+
+local function derive(base, amt)
+	local h, s, v = base:ToHSV()
+	return Color3.fromHSV(h, s, math.clamp(v + amt, 0, 1))
+end
+
+function D.paletteOf(name)
+	if name == "Custom" then
+		local win = D.col("pal_win")
+		local panel = D.col("pal_panel")
+		local card = D.col("pal_card")
+		local text = D.col("pal_text")
+		local sub = D.col("pal_sub")
+		local light = select(3, win:ToHSV()) > 0.6
+		local dir = light and -1 or 1
+		return {
+			win = win, panel = panel, card = card,
+			field = derive(card, 0.035 * dir), hover = derive(card, 0.07 * dir), pop = derive(win, 0.02 * dir),
+			text = text, label = text:Lerp(sub, 0.25), sub = sub, dim = sub:Lerp(win, 0.3),
+			off = derive(card, 0.08 * dir), knobOff = light and Color3.new(1, 1, 1) or sub, light = light,
+		}
+	end
+	local p = PALETTES[D.themeName(name)] or PALETTES.Dark
+	return {
+		win = hex(p.win), panel = hex(p.panel), card = hex(p.card), field = hex(p.field), hover = hex(p.hover), pop = hex(p.pop),
+		text = hex(p.text), label = hex(p.label), sub = hex(p.sub), dim = hex(p.dim), off = hex(p.off), knobOff = hex(p.knobOff),
+		light = p.light == true, accent = p.accent,
+	}
+end
+
+function D.applyTheme()
+	local p = D.paletteOf(S.ui_theme)
+	for k, v in pairs(p) do
+		if k ~= "accent" then T[k] = v end
+	end
+	T.light = p.light == true
+	T.ink = T.light and Color3.new(0, 0, 0) or Color3.new(1, 1, 1)
+	T.white = Color3.new(1, 1, 1)
+	T.black = Color3.new(0, 0, 0)
+	T.shadow = T.light and 0.9 or 0.55
+	for k, v in pairs(D.THEME_OVERRIDES or {}) do
+		if typeof(v) == "Color3" and k ~= "accent" then T[k] = v end
+	end
+	if S.ui_accent_panel and T.panel and T.card then
+		local a = D.parseColor(S.ui_accent or "#E0313DFF")
+		T.panel = T.panel:Lerp(a, 0.08)
+		T.card = T.card:Lerp(a, 0.06)
+	end
+	if D.refreshStyle then D.refreshStyle() end
+	if D.applyBinds then D.applyBinds() end
+	if D.fire then D.fire("__theme") end
+end
+
+local PAINT_TEXT = {TextLabel = true, TextButton = true, TextBox = true}
+local PAINT_IMAGE = {ImageLabel = true, ImageButton = true}
+local function paintAll(map)
+	local root = D.gui
+	if not root then return end
+	local function swap(o, prop)
+		local c = o[prop]
+		local n = map[c:ToHex()]
+		if n then o[prop] = n end
+	end
+	for _, o in ipairs(root:GetDescendants()) do
+		local cls = o.ClassName
+		if o:IsA("GuiObject") then
+			swap(o, "BackgroundColor3")
+			if PAINT_TEXT[cls] then
+				swap(o, "TextColor3")
+				if cls == "TextBox" then swap(o, "PlaceholderColor3") end
+			elseif PAINT_IMAGE[cls] then
+				if not o:GetAttribute("ArvnPicture") then swap(o, "ImageColor3") end
+			elseif cls == "ScrollingFrame" then
+				swap(o, "ScrollBarImageColor3")
+			end
+		elseif cls == "UIStroke" then
+			swap(o, "Color")
+		end
+	end
+end
+
+local liveQueued, liveLast = false, 0
+function D.liveTheme()
+	if liveQueued then return end
+	liveQueued = true
+	task.delay(S.ui_anim_theme == false and 0 or math.max(0, 0.05 - (os.clock() - liveLast)), function()
+		liveQueued = false
+		liveLast = os.clock()
+		if not D.alive then return end
+		local old = {}
+		for k, v in pairs(T) do
+			if typeof(v) == "Color3" then old[k] = v end
+		end
+		D.applyTheme()
+		local map, any = {}, false
+		for k, v in pairs(old) do
+			local n = T[k]
+			if typeof(n) == "Color3" and n ~= v then
+				map[v:ToHex()] = n
+				any = true
+			end
+		end
+		if any then pcall(paintAll, map) end
+	end)
+end
+
+function D.accent()
+	return (D.parseColor(S.ui_accent or "#E0313DFF"))
+end
+
+function D.accentText()
+	local h, s, v = D.accent():ToHSV()
+	if T.light then
+		return Color3.fromHSV(h, math.max(s, 0.55), math.min(v, 0.62))
+	end
+	return Color3.fromHSV(h, math.min(s, 0.7), math.max(v, 0.88)):Lerp(Color3.new(1, 1, 1), 0.1)
+end
+
+function D.onAccentColor(alpha)
+	local base = T.win or Color3.new(0, 0, 0)
+	local c = base:Lerp(D.accent(), alpha or 1)
+	local function lin(x) return x <= 0.03928 and x / 12.92 or ((x + 0.055) / 1.055) ^ 2.4 end
+	local l = 0.2126 * lin(c.R) + 0.7152 * lin(c.G) + 0.0722 * lin(c.B)
+	return l > 0.3 and Color3.new(0.08, 0.08, 0.1) or Color3.new(1, 1, 1)
+end
+
+local W = Enum.FontWeight
+D.W = {reg = W.Regular, med = W.Medium, semi = W.SemiBold, bold = W.Bold}
+
+-- Numeric font weights let the "Font Weight" option shift every text style.
+local FW_NUM = {[W.Thin] = 100, [W.ExtraLight] = 200, [W.Light] = 300, [W.Regular] = 400, [W.Medium] = 500, [W.SemiBold] = 600, [W.Bold] = 700, [W.ExtraBold] = 800, [W.Heavy] = 900}
+local FW_ENUM = {[100] = W.Thin, [200] = W.ExtraLight, [300] = W.Light, [400] = W.Regular, [500] = W.Medium, [600] = W.SemiBold, [700] = W.Bold, [800] = W.ExtraBold, [900] = W.Heavy}
+D.WEIGHT_DELTA = {["Light"] = -200, ["Regular"] = -100, ["Medium"] = 0, ["SemiBold"] = 100, ["Bold"] = 200}
+
+D.FONT_FAMILIES = D.FONT_FAMILIES or {}
+function D.F(weight)
+	local name = S.ui_font or "BuilderSans"
+	local fam = D.FONT_FAMILIES[name] or ("rbxasset://fonts/families/" .. name .. ".json")
+	local w = weight or W.Medium
+	local delta = D.WEIGHT_DELTA[S.ui_font_weight]
+	if delta and delta ~= 0 then
+		local n = FW_NUM[w] or 500
+		n = math.clamp(n + delta, 100, 900)
+		w = FW_ENUM[(n // 100) * 100] or w
+	end
+	return Font.new(fam, w)
+end
+
+local fontCache = {}
+function D.textFont(name, bold)
+	local key = tostring(name) .. (bold and "b" or "")
+	local f = fontCache[key]
+	if f then return f end
+	local ok, en = pcall(function() return Enum.Font[name] end)
+	if ok and en then
+		f = Font.fromEnum(en)
+		if bold then f = Font.new(f.Family, W.Bold) end
+	else
+		f = Font.new("rbxasset://fonts/families/" .. tostring(name) .. ".json", bold and W.Bold or W.Medium)
+	end
+	fontCache[key] = f
+	return f
+end
+
+function D.applyMetrics()
+	local dens = S.ui_density
+	local compact = dens == "Compact"
+	local spacious = dens == "Spacious"
+	local r = math.clamp(math.floor(S.ui_radius or 14), 4, 20)
+	local es = math.clamp((S.ui_elem_scale or 100) / 100, 0.5, 2)
+	local fs = math.clamp((S.ui_font_scale or 100) / 100, 0.5, 2)
+	local floor = math.floor
+	M.row = floor((compact and 34 or (spacious and 46 or 40)) * es + 0.5)
+	M.nav = floor((compact and 32 or (spacious and 40 or 36)) * es + 0.5)
+	M.navSub = floor((compact and 30 or (spacious and 36 or 33)) * es + 0.5)
+	M.gap = floor((compact and 12 or (spacious and 22 or 16)) * es + 0.5)
+	M.title = floor((compact and 26 or (spacious and 34 or 30)) * es + 0.5)
+	M.rWin = r
+	M.rCard = math.max(4, r - 4)
+	M.rField = math.max(3, r - 7)
+	M.rPop = math.max(4, r - 2)
+	M.rChip = math.max(3, r - 8)
+	local t = (compact and 13 or (spacious and 15 or 14)) * fs
+	if S.ui_hidpi ~= false then t = floor(t + 0.5) end
+	M.text = math.max(9, t)
+	M.iconScale = math.clamp((S.ui_icon_scale or 100) / 100, 0.5, 2)
+end
+end
+do
+local SR = 22050
+local TAU = math.pi * 2
+local seed = 12345
+local function noise()
+	seed = (seed * 1103515245 + 12345) % 2147483648
+	return seed / 1073741824 - 1
+end
+
+local function sine(f, t) return math.sin(TAU * f * t) end
+
+local SYNTH = {
+	Soft = {0.09, function(t)
+		local f = 950 + 300 * math.exp(-t * 90)
+		local s = sine(f, t) * math.exp(-t * 55)
+		if t < 0.002 then s += noise() * 0.15 end
+		return s * 0.5
+	end},
+	Tick = {0.035, function(t)
+		return sine(3200, t) * math.exp(-t * 170) * 0.4
+	end},
+	Click = {0.04, function(t)
+		return (noise() * math.exp(-t * 420) * 0.6 + sine(2100, t) * math.exp(-t * 260) * 0.35) * 0.7
+	end},
+	Pop = {0.13, function(t)
+		local f = 300 + 650 * math.exp(-t * 45)
+		local a = math.min(t / 0.002, 1) * math.exp(-t * 34)
+		return sine(f, t) * a * 0.6
+	end},
+	Bubble = {0.11, function(t)
+		local f = 360 + 800 * (t / 0.11)
+		return sine(f, t) * math.sin(math.pi * t / 0.11) ^ 1.5 * 0.5
+	end},
+	Glass = {0.4, function(t)
+		return (sine(2400, t) + sine(3610, t) * 0.6 + sine(5100, t) * 0.35) * math.exp(-t * 20) * 0.22
+	end},
+	Mech = {0.08, function(t)
+		return (noise() * math.exp(-t * 320) * 0.5 + sine(140, t) * math.exp(-t * 55) * 0.6) * 0.7
+	end},
+	Switch = {0.09, function(t)
+		local a = sine(1800, t) * math.exp(-t * 150)
+		local t2 = t - 0.035
+		local b = t2 > 0 and sine(2600, t2) * math.exp(-t2 * 150) or 0
+		return (a + b) * 0.35
+	end},
+	Chime = {0.75, function(t)
+		local a = (sine(988, t) + sine(1976, t) * 0.25) * math.exp(-t * 8)
+		local t2 = t - 0.09
+		local b = t2 > 0 and (sine(1319, t2) + sine(2638, t2) * 0.25) * math.exp(-t2 * 8) or 0
+		return (a + b) * 0.24
+	end},
+	Ping = {0.5, function(t)
+		return (sine(1760, t) + sine(3520, t) * 0.18) * math.exp(-t * 10) * 0.3
+	end},
+	Bell = {0.9, function(t)
+		return (sine(700, t) + sine(1680, t) * 0.55 + sine(2760, t) * 0.35 + sine(3900, t) * 0.2) * math.exp(-t * 6) * 0.2
+	end},
+	Swoosh = {0.3, function()
+		return 0
+	end},
+	Drop = {0.26, function(t)
+		local f = 260 + 260 * math.exp(-t * 14)
+		return sine(f, t) * math.min(t / 0.004, 1) * math.exp(-t * 12) * 0.45
+	end},
+}
+
+local function swoosh()
+	local n = math.floor(SR * 0.3)
+	local out = table.create(n)
+	local lp, prev = 0, 0
+	for i = 1, n do
+		local t = (i - 1) / SR
+		local p = t / 0.3
+		local cutoff = 0.02 + 0.25 * math.sin(math.pi * p)
+		local x = noise()
+		lp = lp + cutoff * (x - lp)
+		local hp = lp - prev * 0.2
+		prev = lp
+		out[i] = hp * math.sin(math.pi * p) ^ 2 * 0.9
+	end
+	return out
+end
+
+local function render(name)
+	local def = SYNTH[name]
+	if not def then return nil end
+	local samples
+	if name == "Swoosh" then
+		samples = swoosh()
+	else
+		local n = math.floor(SR * def[1])
+		samples = table.create(n)
+		local fn = def[2]
+		for i = 1, n do
+			local t = (i - 1) / SR
+			local fade = math.min(1, (n - i) / (SR * 0.004))
+			samples[i] = fn(t) * fade
+		end
+	end
+	local bytes = table.create(#samples)
+	for i, v in ipairs(samples) do
+		local s = math.floor(math.clamp(v, -1, 1) * 32767)
+		if s < 0 then s += 65536 end
+		bytes[i] = string.char(s % 256, s // 256)
+	end
+	local data = table.concat(bytes)
+	local function u32(x) return string.char(x % 256, (x // 256) % 256, (x // 65536) % 256, (x // 16777216) % 256) end
+	local function u16(x) return string.char(x % 256, (x // 256) % 256) end
+	return "RIFF" .. u32(36 + #data) .. "WAVEfmt " .. u32(16) .. u16(1) .. u16(1) .. u32(SR) .. u32(SR * 2) .. u16(2) .. u16(16) .. "data" .. u32(#data) .. data
+end
+
+local ASSET = {}
+local POOL = {}
+local ready = false
+local root
+
+task.spawn(function()
+	if not (writefile and getcustomasset) then return end
+	D.ensureDir(DIR)
+	D.ensureDir(DIR .. "/sounds_v1")
+	for name in pairs(SYNTH) do
+		local path = DIR .. "/sounds_v1/" .. string.lower(name) .. ".wav"
+		pcall(function()
+			if not (isfile and isfile(path)) then
+				local wav = render(name)
+				if wav then writefile(path, wav) end
+			end
+			ASSET[name] = getcustomasset(path)
+		end)
+		task.wait()
+	end
+	ready = true
+end)
+
+local last = {}
+function D.playName(name, pitch, volume)
+	if not D.alive or not name or name == "None" or S.snd_on == false then return end
+	local id = ASSET[name]
+	if not id then return end
+	local now = os.clock()
+	if last[name] and now - last[name] < 0.035 then return end
+	last[name] = now
+	if not root or not root.Parent then root = D.gui end
+	if not root then return end
+	local pool = POOL[name]
+	if not pool then
+		pool = {i = 0}
+		for k = 1, 4 do
+			local snd = Instance.new("Sound")
+			snd.SoundId = id
+			snd.Parent = root
+			pool[k] = snd
+		end
+		POOL[name] = pool
+	end
+	pool.i = pool.i % #pool + 1
+	local snd = pool[pool.i]
+	local var = (math.random() - 0.5) * 0.08
+	snd.PlaybackSpeed = (pitch or 1) * (1 + var)
+	snd.Volume = ((S.snd_vol or 55) / 100) * (volume or 1) * 1.6
+	snd.TimePosition = 0
+	pcall(function() SoundService:PlayLocalSound(snd) end)
+end
+
+function D.play(kind, pitch)
+	D.playName(S["snd_" .. kind], pitch)
+end
+
+function D.soundsReady() return ready end
+
+D.onCleanup(function()
+	for _, pool in pairs(POOL) do
+		for _, snd in ipairs(pool) do pcall(function() snd:Destroy() end) end
+	end
+end)
+end
+do
+local gui = Instance.new("ScreenGui")
+gui.Name = string.sub(HttpService:GenerateGUID(false), 1, 8)
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.DisplayOrder = 9999
+do
+	local ok, h = pcall(function() return gethui and gethui() end)
+	gui.Parent = (ok and h) or CoreGui
+end
+D.gui = gui
+D.onCleanup(function() gui:Destroy() end)
+
+local function layer(name, z, parent)
+	local f = Instance.new("Frame")
+	f.Name = name
+	f.Size = UDim2.fromScale(1, 1)
+	f.BackgroundTransparency = 1
+	f.BorderSizePixel = 0
+	f.ZIndex = z
+	f.Parent = parent or gui
+	return f
+end
+D.L = {}
+D.L.dim = layer("Dim", 1)
+D.L.dim.BackgroundColor3 = Color3.new(0, 0, 0)
+
+-- Letterbox bars live above the dim layer and below the virtual viewport.
+D.L.bars = layer("Bars", 2)
+D.L.bars.Visible = false
+local function barFrame(name)
+	local f = Instance.new("Frame")
+	f.Name = name
+	f.BorderSizePixel = 0
+	f.BackgroundColor3 = Color3.new(0, 0, 0)
+	f.ZIndex = 1
+	f.Visible = false
+	f.Parent = D.L.bars
+	return f
+end
+D.L.barTop, D.L.barBottom, D.L.barLeft, D.L.barRight = barFrame("Top"), barFrame("Bottom"), barFrame("Left"), barFrame("Right")
+
+-- The virtual viewport. Everything that should respect the display box lives
+-- here. Its UIScale maps virtual units to pixels (1 by default).
+D.L.vp = layer("Viewport", 3)
+D.L.vp.ClipsDescendants = true
+D.L.vp.BackgroundTransparency = 1
+D.L.fx = layer("Fx", 2, D.L.vp)
+D.L.hud = layer("Hud", 3, D.L.vp)
+D.L.ov = layer("Overlay", 4, D.L.vp)
+D.L.win = layer("Window", 5, D.L.vp)
+D.L.pop = layer("Popups", 6, D.L.vp)
+D.L.tip = layer("Tips", 7, D.L.vp)
+D.L.toast = layer("Toasts", 8, D.L.vp)
+
+function D.new(class, props, kids)
+	local o = Instance.new(class)
+	local parent
+	if props then
+		for k, v in pairs(props) do
+			if k == "Parent" then parent = v else o[k] = v end
+		end
+	end
+	if kids then
+		for _, c in ipairs(kids) do c.Parent = o end
+	end
+	if parent then o.Parent = parent end
+	return o
+end
+local new = D.new
+
+local STYLE_PROFILES = {
+	["Default"] = {ck = 1, str = 0, rim = true, glass = 1},
+	["Minimal"] = {ck = 0.6, str = 0.06, rim = false, glass = 0.6},
+	["Glass"] = {ck = 1.1, str = -0.04, rim = true, glass = 1.35},
+	["Neon"] = {ck = 1.2, str = -0.1, rim = false, glass = 0.8, glow = true},
+	["Flat"] = {ck = 0.5, str = 0.1, rim = false, glass = 0.4},
+	["Material"] = {ck = 0.9, str = 0.04, rim = false, glass = 0.7, shadow = true},
+	["Retro"] = {ck = 0.1, str = 0.02, rim = false, glass = 0.5},
+	["Soft"] = {ck = 1.35, str = 0.02, rim = true, glass = 1.1},
+	["Hard"] = {ck = 0, str = -0.06, rim = false, glass = 0.3},
+}
+D.ST = {ck = 1, str = 0, rim = true, glass = 1, thickness = 1}
+
+function D.refreshStyle()
+	local b = {ck = 1, str = 0, rim = true, glass = 1, thickness = 1}
+	local p = STYLE_PROFILES[S.ui_style or "Default"]
+	if p then for k, v in pairs(p) do b[k] = v end end
+	local bd = S.ui_border or "Soft"
+	if bd == "None" then b.hideStroke = true
+	elseif bd == "Hard" then b.str = b.str - 0.06
+	elseif bd == "Inset" then b.inset = true
+	elseif bd == "Outline" then b.outline = true end
+	if S.ui_shadow then b.shadow = true end
+	if S.ui_glow then b.glow = true end
+	b.thickness = math.clamp(tonumber(S.ui_border_thick) or 1, 1, 3)
+	D.ST = b
+	return b
+end
+
+function D.corner(p, r)
+	local k = D.ST and D.ST.ck or 1
+	r = math.max(0, math.floor(r * k + 0.5))
+	return new("UICorner", {CornerRadius = UDim.new(0, r), Parent = p})
+end
+
+function D.stroke(p, tr, rim)
+	local st = D.ST or {}
+	local base = math.clamp((tr or 0.92) + (st.str or 0), 0, 1)
+	local s = new("UIStroke", {Color = T.ink, Transparency = base, Thickness = st.thickness or 1, ApplyStrokeMode = Enum.ApplyStrokeMode.Border})
+	local pos = Enum.BorderStrokePosition.Inner
+	if st.outline then pos = Enum.BorderStrokePosition.Outer end
+	pcall(function() s.BorderStrokePosition = pos end)
+	if st.hideStroke then s.Transparency = 1 end
+	if rim and (st.rim ~= false) and S.ui_rim ~= false and not T.light then
+		new("UIGradient", {Rotation = 90, Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0),
+			NumberSequenceKeypoint.new(0.18, 0.45),
+			NumberSequenceKeypoint.new(1, 0.72),
+		}), Parent = s})
+	end
+	s.Parent = p
+	return s
+end
+
+-- Drop shadow / accent glow applied to floating surfaces.
+function D.halo(p)
+	local st = D.ST or {}
+	if st.shadow then
+		local th = math.clamp((tonumber(S.ui_shadow_size) or 14) / 7, 1, 6)
+		local amt = math.clamp((tonumber(S.ui_shadow_amt) or 55) / 100, 0, 1)
+		local s = new("UIStroke", {Color = Color3.new(0, 0, 0), Thickness = th, Transparency = 1 - amt * 0.85, ApplyStrokeMode = Enum.ApplyStrokeMode.Border})
+		pcall(function() s.BorderStrokePosition = Enum.BorderStrokePosition.Outer end)
+		s.Parent = p
+	end
+	if st.glow then
+		local amt = math.clamp((tonumber(S.ui_glow_amt) or 60) / 100, 0, 1)
+		local s = new("UIStroke", {Color = D.accent(), Thickness = math.clamp(amt * 4, 1, 4), Transparency = 1 - amt * 0.85, ApplyStrokeMode = Enum.ApplyStrokeMode.Border})
+		pcall(function() s.BorderStrokePosition = Enum.BorderStrokePosition.Outer end)
+		s.Parent = p
+		if D.onAccent then D.onAccent(s, function(a) s.Color = a end) end
+	end
+end
+
+-- Subtle vertical gradient used on cards and panels.
+function D.cardGrad(p)
+	if S.ui_gradient ~= true then return end
+	local dark = T.light and Color3.new(0.85, 0.85, 0.9) or Color3.new(0.82, 0.82, 0.85)
+	new("UIGradient", {Rotation = tonumber(S.ui_gradient_rot) or 90, Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+		ColorSequenceKeypoint.new(1, dark),
+	}), Parent = p})
+end
+
+function D.pad(p, t, r, b, l)
+	return new("UIPadding", {PaddingTop = UDim.new(0, t), PaddingRight = UDim.new(0, r or t), PaddingBottom = UDim.new(0, b or t), PaddingLeft = UDim.new(0, l or r or t), Parent = p})
+end
+
+function D.vlist(p, gap, halign)
+	return new("UIListLayout", {Padding = UDim.new(0, gap or 0), SortOrder = Enum.SortOrder.LayoutOrder, HorizontalAlignment = halign or Enum.HorizontalAlignment.Left, Parent = p})
+end
+
+function D.hlist(p, gap, halign, valign)
+	return new("UIListLayout", {FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, gap or 0), SortOrder = Enum.SortOrder.LayoutOrder, VerticalAlignment = valign or Enum.VerticalAlignment.Center, HorizontalAlignment = halign or Enum.HorizontalAlignment.Left, Parent = p})
+end
+
+function D.frame(props)
+	if props.BorderSizePixel == nil then props.BorderSizePixel = 0 end
+	return new("Frame", props)
+end
+
+function D.text(props)
+	props.BackgroundTransparency = 1
+	props.BorderSizePixel = 0
+	props.FontFace = props.FontFace or D.F(D.W.med)
+	props.TextColor3 = props.TextColor3 or T.label
+	props.TextSize = props.TextSize or M.text
+	props.TextXAlignment = props.TextXAlignment or Enum.TextXAlignment.Left
+	return new("TextLabel", props)
+end
+
+function D.button(props)
+	props.AutoButtonColor = false
+	props.BorderSizePixel = 0
+	if props.Text == nil then props.Text = "" end
+	props.FontFace = props.FontFace or D.F(D.W.med)
+	if props.BackgroundTransparency == nil then props.BackgroundTransparency = 1 end
+	return new("TextButton", props)
+end
+
+local GLYPH = {["chevron-right"] = ">", ["chevron-down"] = "v", ellipsis = "...", check = "+", x = "x", plus = "+", search = "?"}
+D.ICON = {}
+if writefile and getcustomasset then
+	D.ensureDir(DIR)
+	D.ensureDir(DIR .. "/icons_v3")
+	for name, data in pairs(D.ICON_DATA) do
+		local path = DIR .. "/icons_v3/" .. name .. ".png"
+		pcall(function()
+			if not (isfile and isfile(path)) then writefile(path, D.b64decode(data)) end
+			D.ICON[name] = getcustomasset(path)
+		end)
+	end
+end
+D.ICONS = nil
+pcall(function()
+	local chunk = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/Icons/main/Main-v2.lua"))
+	if chunk then
+		local Icons = chunk()
+		if type(Icons) == "table" and Icons.GetIcon then
+			pcall(function() Icons.SetIconsType("lucide") end)
+			D.ICONS = Icons
+		end
+	end
+end)
+
+local function iconKey(name)
+	local k = string.gsub(string.lower(name), "[%s_]+", "-")
+	return k
+end
+
+local function iconSource(name)
+	if type(name) == "number" then name = tostring(name) end
+	if type(name) ~= "string" then return nil end
+	if D.ICON[name] then return D.ICON[name] end
+	if string.find(name, "^rbxasset") or string.find(name, "^rbxthumb") then return name end
+	if string.match(name, "^%d+$") then return "rbxassetid://" .. name end
+	if D.ICONS then
+		local key = (string.find(name, ":") and name) or iconKey(name)
+		local ok, asset = pcall(D.ICONS.GetIcon, key)
+		if ok and type(asset) == "string" and #asset > 0 then return asset end
+	end
+	return nil
+end
+D.iconSource = iconSource
+
+local function pictureSource(name)
+	if type(name) ~= "string" then return nil end
+	if string.find(name, "^https?://") or string.find(name, "^rbxthumb") or string.find(name, "^headshot:%d+$") or string.find(name, "^thumb:%d+$") then return name end
+	return nil
+end
+D.pictureSource = pictureSource
+
+local badPictures = {}
+local function loadPicture(o, src)
+	o:SetAttribute("ArvnPicture", src)
+	o.ImageRectOffset = Vector2.zero
+	o.ImageRectSize = Vector2.zero
+	o.ImageColor3 = Color3.new(1, 1, 1)
+	o.Image = ""
+	if not D.resolveImage then return end
+	D.resolveImage(src, function(asset)
+		if o:GetAttribute("ArvnPicture") ~= src then return end
+		if asset then
+			o.Image = asset
+			return
+		end
+		if not badPictures[src] then
+			badPictures[src] = true
+			warn("arvn: could not load the icon " .. src)
+		end
+		o:SetAttribute("ArvnPicture", nil)
+		o.Image = iconSource("image") or ""
+		o.ImageColor3 = T.sub
+	end)
+end
+
+function D.hasIcon(name)
+	return pictureSource(name) ~= nil or iconSource(name) ~= nil
+end
+
+function D.setIcon(o, name)
+	if not (o and (o:IsA("ImageLabel") or o:IsA("ImageButton"))) then return end
+	local pic = pictureSource(name)
+	if pic then
+		loadPicture(o, pic)
+		return
+	end
+	if o:GetAttribute("ArvnPicture") then
+		o:SetAttribute("ArvnPicture", nil)
+		o.ImageColor3 = T.sub
+	end
+	local img = iconSource(name)
+	o.Image = img or ""
+end
+
+function D.icon(name, size, color, props)
+	props = props or {}
+	local isBtn = props.Button
+	props.Button = nil
+	if size and size >= 16 and M.iconScale and M.iconScale ~= 1 then
+		size = math.floor(size * M.iconScale + 0.5)
+	end
+	props.BackgroundTransparency = 1
+	props.BorderSizePixel = 0
+	props.Size = props.Size or UDim2.fromOffset(size, size)
+	if isBtn then props.AutoButtonColor = false end
+	local pic = pictureSource(name)
+	if pic then
+		props.ScaleType = Enum.ScaleType.Fit
+		local o = new(isBtn and "ImageButton" or "ImageLabel", props)
+		loadPicture(o, pic)
+		return o
+	end
+	local img = iconSource(name)
+	if img then
+		props.Image = img
+		props.ImageColor3 = color or T.sub
+		props.ScaleType = Enum.ScaleType.Fit
+		return new(isBtn and "ImageButton" or "ImageLabel", props)
+	end
+	props.Text = GLYPH[name] or ""
+	props.TextColor3 = color or T.sub
+	props.TextSize = size
+	props.FontFace = D.F(D.W.bold)
+	return new(isBtn and "TextButton" or "TextLabel", props)
+end
+
+function D.iconColor(o, c)
+	if not o then return end
+	if o:IsA("ImageLabel") or o:IsA("ImageButton") then
+		if not o:GetAttribute("ArvnPicture") then o.ImageColor3 = c end
+	else
+		o.TextColor3 = c
+	end
+end
+
+local ACC, accCap = {}, 128
+function D.onAccent(inst, fn)
+	if #ACC >= accCap then
+		ACC = D.compact(ACC)
+		accCap = math.max(128, #ACC * 2)
+	end
+	ACC[#ACC + 1] = {inst, fn}
+	fn(D.accent())
+end
+function D.refreshAccent()
+	ACC = D.compact(ACC)
+	local a = D.accent()
+	for _, e in ipairs(ACC) do pcall(e[2], a) end
+end
+
+local GLASS, glassCap = {}, 128
+function D.glassT(f)
+	if not S.ui_glass then return 0 end
+	local g = (D.ST and D.ST.glass) or 1
+	return math.clamp((S.ui_glass_amt or 45) / 100 * f * g, 0, 0.7)
+end
+function D.onGlass(inst, f)
+	if #GLASS >= glassCap then
+		GLASS = D.compact(GLASS)
+		glassCap = math.max(128, #GLASS * 2)
+	end
+	GLASS[#GLASS + 1] = {inst, f}
+	inst.BackgroundTransparency = D.glassT(f)
+end
+function D.refreshGlass()
+	GLASS = D.compact(GLASS)
+	for _, e in ipairs(GLASS) do e[1].BackgroundTransparency = D.glassT(e[2]) end
+end
+
+function D.blocker(parent, z)
+	return D.button({Name = "Blocker", Size = UDim2.fromScale(1, 1), ZIndex = z or 0, Parent = parent})
+end
+
+function D.hoverFade(target, prop, rest, hover, trigger)
+	trigger = trigger or target
+	trigger.MouseEnter:Connect(function() D.tween(target, 0.14, {[prop] = hover}) end)
+	trigger.MouseLeave:Connect(function() D.tween(target, 0.18, {[prop] = rest}) end)
+end
+
+function D.press(o)
+	local sc = o:FindFirstChild("PressScale")
+	if not sc then sc = new("UIScale", {Name = "PressScale", Parent = o}) end
+	sc.Scale = 0.96
+	D.tween(sc, 0.35, {Scale = 1}, Enum.EasingStyle.Back)
+end
+end
+do
+local new, frame, text = D.new, D.frame, D.text
+local TextService = cloneref(game:GetService("TextService"))
+local pops = {}
+D.pops = pops
+
+local dragFn, dragEnd, dragOwner
+function D.startDrag(fn, onEnd, owner)
+	dragFn, dragEnd, dragOwner = fn, onEnd, owner
+	local m = D.mouse()
+	local ok = pcall(fn, m.X, m.Y)
+	if not ok then dragFn, dragEnd, dragOwner = nil, nil, nil end
+end
+function D.endDrag()
+	if not dragFn then return end
+	dragFn, dragOwner = nil, nil
+	local e = dragEnd
+	dragEnd = nil
+	if e then pcall(e) end
+	if D.flushRebuild then D.flushRebuild() end
+end
+function D.dragging() return dragFn ~= nil end
+D.on(UIS.InputChanged, function(input)
+	if dragFn and input.UserInputType == Enum.UserInputType.MouseMovement then
+		if dragOwner and not dragOwner.Parent then
+			dragFn, dragEnd, dragOwner = nil, nil, nil
+			return
+		end
+		local m = D.mouse()
+		local ok = pcall(dragFn, m.X, m.Y)
+		if not ok then dragFn, dragEnd, dragOwner = nil, nil, nil end
+	end
+end)
+
+local tip = {token = 0}
+local function tipParts()
+	if tip.card and tip.card.Parent then return end
+	tip.card = frame({Size = UDim2.fromOffset(10, 10), BackgroundColor3 = T.pop, BackgroundTransparency = 1, Visible = false, Parent = D.L.tip})
+	D.corner(tip.card, M.rChip + 2)
+	tip.stroke = new("UIStroke", {Color = T.ink, Transparency = 1, Parent = tip.card})
+	tip.label = text({Position = UDim2.fromOffset(10, 7), Size = UDim2.fromOffset(10, 10), TextSize = 12, TextColor3 = T.label, TextWrapped = true, TextTransparency = 1, TextYAlignment = Enum.TextYAlignment.Top, Parent = tip.card})
+end
+
+local function placeTip()
+	if not tip.card or not tip.card.Visible then return end
+	local m = D.mouse()
+	local vp = D.viewport()
+	local s = D.vsize(tip.card)
+	local x = math.clamp(m.X + 14, 6, vp.X - s.X - 6)
+	local y = m.Y + 22
+	if y + s.Y > vp.Y - 6 then y = m.Y - s.Y - 12 end
+	tip.card.Position = UDim2.fromOffset(math.floor(x), math.floor(y))
+end
+
+function D.hideTip(owner)
+	if owner and tip.owner ~= owner then return end
+	tip.token += 1
+	tip.owner = nil
+	if tip.card and tip.card.Visible then
+		local token = tip.token
+		D.tween(tip.card, 0.12, {BackgroundTransparency = 1})
+		D.tween(tip.label, 0.12, {TextTransparency = 1})
+		D.tween(tip.stroke, 0.12, {Transparency = 1})
+		task.delay(D.tweenTime(0.13), function()
+			if tip.token == token and tip.card then tip.card.Visible = false end
+		end)
+	end
+end
+
+function D.showTip(owner, str)
+	if S.ui_tooltips == false or not str or str == "" then return end
+	tip.token += 1
+	local token = tip.token
+	tip.owner = owner
+	task.delay(0.6, function()
+		if token ~= tip.token or tip.owner ~= owner or not owner.Parent or D.dragging() then return end
+		local m = D.mouse()
+		if not D.inRect(owner, m.X, m.Y, 2) then return end
+		tipParts()
+		local font = D.F(D.W.med)
+		local maxW = 260
+		local ok, size = pcall(function()
+			local params = Instance.new("GetTextBoundsParams")
+			params.Text = str
+			params.Font = font
+			params.Size = 12
+			params.Width = maxW
+			return TextService:GetTextBoundsAsync(params)
+		end)
+		if not ok or not size then size = Vector2.new(math.min(#str * 6.2, maxW), 14) end
+		local w, h = math.ceil(size.X) + 2, math.ceil(size.Y) + 1
+		tip.card.BackgroundColor3 = T.pop
+		tip.stroke.Color = T.ink
+		tip.label.TextColor3 = T.label
+		tip.label.FontFace = font
+		tip.label.Text = str
+		tip.label.Size = UDim2.fromOffset(w, h)
+		tip.card.Size = UDim2.fromOffset(w + 20, h + 14)
+		tip.card.BackgroundTransparency = 1
+		tip.label.TextTransparency = 1
+		tip.stroke.Transparency = 1
+		tip.card.Visible = true
+		placeTip()
+		D.tween(tip.card, 0.16, {BackgroundTransparency = 0.04})
+		D.tween(tip.label, 0.16, {TextTransparency = 0})
+		D.tween(tip.stroke, 0.16, {Transparency = 0.84})
+	end)
+end
+
+function D.tip(inst, str)
+	inst.MouseEnter:Connect(function()
+		D.showTip(inst, type(str) == "function" and str() or str)
+	end)
+	inst.MouseMoved:Connect(function()
+		if tip.owner == inst then placeTip() end
+	end)
+	inst.MouseLeave:Connect(function() D.hideTip(inst) end)
+	if inst:IsA("GuiButton") then
+		inst.MouseButton1Down:Connect(function() D.hideTip() end)
+		inst.MouseButton2Down:Connect(function() D.hideTip() end)
+	end
+end
+
+D.on(RunService.Heartbeat, function()
+	if tip.owner then
+		local o = tip.owner
+		if not o.Parent then
+			D.hideTip()
+			return
+		end
+		local m = D.mouse()
+		if not D.inRect(o, m.X, m.Y, 2) then D.hideTip() end
+	end
+end)
+
+local function destroyPop(p)
+	for _, u in ipairs(p.scope) do pcall(u) end
+	if p.onClose then pcall(p.onClose) end
+	if D.listening and D.listening.chip and D.listening.chip:IsDescendantOf(p.frame) then D.listening.stop(nil) end
+	if dragOwner and (dragOwner == p.frame or dragOwner:IsDescendantOf(p.frame)) then
+		dragFn, dragEnd, dragOwner = nil, nil, nil
+	end
+	local f = p.frame
+	pcall(function() f.Interactable = false end)
+	if S.ui_anim == false then
+		f:Destroy()
+		return
+	end
+	D.tween(f, 0.12, {GroupTransparency = 1})
+	if p.scale then D.tween(p.scale, 0.12, {Scale = p.scale.Scale * 0.97}) end
+	task.delay(D.tweenTime(0.13), function() f:Destroy() end)
+end
+
+function D.closePops(level)
+	level = level or 1
+	D.hideTip()
+	for i = #pops, level, -1 do
+		local p = pops[i]
+		pops[i] = nil
+		if p then destroyPop(p) end
+	end
+	if #pops == 0 and D.flushRebuild then D.flushRebuild() end
+end
+
+function D.uiScale() return (S.ui_scale or 100) / 100 end
+
+local function place(f, anchor, how, sc)
+	local vp = D.viewport()
+	local s = (f.AbsoluteSize / D.RES.factor) / math.max(sc.Scale, 0.01) * D.uiScale()
+	local ap, as = D.spos(anchor), D.vsize(anchor)
+	local x, y
+	if how == "below" then
+		x, y = ap.X, ap.Y + as.Y + 6
+		if y + s.Y > vp.Y - 8 then y = ap.Y - s.Y - 6 end
+	elseif how == "belowRight" then
+		x, y = ap.X + as.X - s.X, ap.Y + as.Y + 6
+		if y + s.Y > vp.Y - 8 then y = ap.Y - s.Y - 6 end
+	elseif how == "side" then
+		x, y = ap.X + as.X + 12, ap.Y + as.Y - s.Y
+	else
+		x, y = ap.X + as.X + 8, ap.Y - 10
+		if x + s.X > vp.X - 8 then x = ap.X - s.X - 8 end
+	end
+	x = math.clamp(x, 8, math.max(8, vp.X - s.X - 8))
+	y = math.clamp(y, 8, math.max(8, vp.Y - s.Y - 8))
+	f.Position = UDim2.fromOffset(math.floor(x), math.floor(y))
+end
+
+function D.openPop(level, anchor, opts, build)
+	local cur = pops[level]
+	if cur and ((cur.anchor == anchor) or (opts.key and cur.key == opts.key)) then
+		D.closePops(level)
+		return
+	end
+	if opts.key and D.popSuppress == opts.key then
+		D.popSuppress = nil
+		return
+	end
+	D.closePops(level)
+	local f = new("CanvasGroup", {Position = UDim2.fromOffset(-4000, -4000), Size = UDim2.fromOffset(opts.width or 300, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = T.pop, GroupTransparency = 1, Parent = D.L.pop})
+	D.corner(f, opts.radius or M.rPop)
+	D.stroke(f, 0.8, true)
+	D.onGlass(f, 0.1)
+	D.cardGrad(f)
+	D.halo(f)
+	D.blocker(f, 0)
+	local body = frame({Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 1, Parent = f})
+	local p = opts.pad or 12
+	D.pad(body, p, p, p, p)
+	D.vlist(body, opts.gap or 10)
+	local sc = new("UIScale", {Scale = D.uiScale() * 0.95, Parent = f})
+	local entry = {frame = f, body = body, anchor = anchor, key = opts.key, scope = {}, onClose = opts.onClose, scale = sc}
+	pops[level] = entry
+	if opts.title then
+		local hd = frame({Size = UDim2.new(1, 0, 0, 22), BackgroundTransparency = 1, LayoutOrder = 0, Parent = body})
+		text({Text = opts.title, FontFace = D.F(D.W.semi), TextSize = 14, TextColor3 = T.text, Size = UDim2.new(1, opts.subtitle and -110 or 0, 1, 0), TextTruncate = Enum.TextTruncate.AtEnd, Parent = hd})
+		if opts.subtitle then
+			text({Text = opts.subtitle, TextSize = 12, TextColor3 = T.dim, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 0), Size = UDim2.new(0, 110, 1, 0), TextXAlignment = Enum.TextXAlignment.Right, TextTruncate = Enum.TextTruncate.AtEnd, Parent = hd})
+		end
+	end
+	build(body, entry.scope, level, entry)
+	task.spawn(function()
+		RunService.RenderStepped:Wait()
+		if not f.Parent or pops[level] ~= entry then return end
+		place(f, anchor, opts.place, sc)
+		D.tween(f, 0.18, {GroupTransparency = 0})
+		D.tween(sc, 0.26, {Scale = D.uiScale()}, Enum.EasingStyle.Back)
+	end)
+	return body, entry
+end
+
+function D.popClick()
+	D.popSuppress = nil
+	if #pops == 0 then return end
+	local m = D.mouse()
+	local top = 0
+	for i = #pops, 1, -1 do
+		if D.inRect(pops[i].frame, m.X, m.Y) then
+			top = i
+			break
+		end
+	end
+	local keep = top
+	local nxt = pops[top + 1]
+	if nxt and nxt.anchor and D.inRect(nxt.anchor, m.X, m.Y) then keep = top + 1 end
+	if #pops > keep then
+		local closing = pops[keep + 1]
+		D.closePops(keep + 1)
+		D.popSuppress = closing and closing.key
+	end
+end
+end
+do
+local new, frame, text, button, icon = D.new, D.frame, D.text, D.button, D.icon
+local corner, stroke, pad, hlist = D.corner, D.stroke, D.pad, D.hlist
+local tween, set = D.tween, D.set
+
+local KEYNAME = {
+	MouseButton1 = "mb1", MouseButton2 = "mb2", MouseButton3 = "mb3",
+	RightShift = "rshift", LeftShift = "lshift", RightControl = "rctrl", LeftControl = "lctrl",
+	RightAlt = "ralt", LeftAlt = "lalt", Delete = "del", Insert = "ins", PageUp = "pgup", PageDown = "pgdn",
+	Return = "enter", CapsLock = "caps", Backquote = "`", Minus = "-", Equals = "=", LeftBracket = "[",
+	RightBracket = "]", Semicolon = ";", Quote = "'", Comma = ",", Period = ".", Slash = "/", BackSlash = "\\",
+	One = "1", Two = "2", Three = "3", Four = "4", Five = "5", Six = "6", Seven = "7", Eight = "8", Nine = "9", Zero = "0",
+	Space = "space", Tab = "tab", Backspace = "bksp", Escape = "esc",
+}
+function D.keyTitle(k)
+	if not k or k == "None" then return "None" end
+	local s = string.gsub(tostring(k), "(%l)(%u)", "%1 %2")
+	return (string.gsub(s, "(%a)(%d)", "%1 %2"))
+end
+
+function D.keyName(k)
+	if not k or k == "None" then return "none" end
+	return KEYNAME[k] or string.lower(k)
+end
+
+function D.startListen(chip, onKey, opts)
+	if D.listening then D.listening.stop(nil) end
+	opts = opts or {}
+	local l
+	local st = chip:FindFirstChildOfClass("UIStroke")
+	local pulse = true
+	task.spawn(function()
+		while pulse and chip.Parent do
+			if st then tween(st, 0.45, {Transparency = 0.2}) end
+			task.wait(D.tweenTime(0.45))
+			if st then tween(st, 0.45, {Transparency = 0.85}) end
+			task.wait(D.tweenTime(0.45))
+		end
+	end)
+	l = {
+		chip = chip,
+		noMouse = opts.noMouse,
+		noClear = opts.noClear,
+		stop = function(key)
+			pulse = false
+			if D.listening == l then D.listening = nil end
+			if st then tween(st, 0.15, {Transparency = 0.92}) end
+			onKey(key)
+		end,
+	}
+	D.listening = l
+	D.play("click")
+end
+
+local function makeCheckbox(parent, flag, scope, order)
+	local box = frame({Size = UDim2.fromOffset(20, 20), BackgroundColor3 = T.off, LayoutOrder = order, Parent = parent})
+	corner(box, 6)
+	stroke(box, 0.88)
+	local ck = icon("check", 14, D.onAccentColor(), {AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Parent = box})
+	local sc = new("UIScale", {Parent = ck})
+	local function draw(animate)
+		local v = S[flag] and true or false
+		local bc = v and D.accent() or T.off
+		D.iconColor(ck, D.onAccentColor())
+		if animate and S.ui_anim ~= false then
+			tween(box, 0.18, {BackgroundColor3 = bc})
+			if v then
+				sc.Scale = 0.3
+				tween(sc, 0.34, {Scale = 1}, Enum.EasingStyle.Back)
+			else
+				tween(sc, 0.14, {Scale = 0})
+			end
+		else
+			box.BackgroundColor3 = bc
+			sc.Scale = v and 1 or 0
+		end
+	end
+	draw(false)
+	scope[#scope + 1] = D.watch(flag, function() draw(true) end)
+	D.onAccent(box, function() draw(false) end)
+	return box
+end
+
+function D.makeToggle(parent, flag, scope, order)
+	if S.ui_toggle == "Checkbox" then return makeCheckbox(parent, flag, scope, order) end
+	local sq = S.ui_toggle == "Square"
+	local trk = frame({Size = UDim2.fromOffset(36, 20), BackgroundColor3 = T.off, LayoutOrder = order, Parent = parent})
+	corner(trk, sq and 6 or 10)
+	local knob = frame({AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0, 10, 0.5, 0), Size = UDim2.fromOffset(14, 14), BackgroundColor3 = T.knobOff, Parent = trk})
+	corner(knob, sq and 4 or 7)
+	if T.light then new("UIStroke", {Color = Color3.fromRGB(150, 150, 160), Transparency = 0.5, Parent = knob}) end
+	local function draw(animate)
+		local v = S[flag] and true or false
+		local tc = v and D.accent() or T.off
+		local kc = v and T.white or T.knobOff
+		local pos = UDim2.new(0, v and 26 or 10, 0.5, 0)
+		if animate and S.ui_anim ~= false then
+			tween(trk, 0.22, {BackgroundColor3 = tc})
+			tween(knob, 0.26, {Position = pos, BackgroundColor3 = kc})
+			tween(knob, 0.09, {Size = UDim2.fromOffset(21, 14)})
+			task.delay(D.tweenTime(0.09), function()
+				if knob.Parent then tween(knob, 0.24, {Size = UDim2.fromOffset(14, 14)}, Enum.EasingStyle.Back) end
+			end)
+		else
+			trk.BackgroundColor3, knob.Position, knob.BackgroundColor3, knob.Size = tc, pos, kc, UDim2.fromOffset(14, 14)
+		end
+	end
+	draw(false)
+	scope[#scope + 1] = D.watch(flag, function() draw(true) end)
+	D.onAccent(trk, function() draw(false) end)
+	return trk
+end
+
+function D.makeSwatch(parent, flag, scope, order, level)
+	local b = button({Size = UDim2.fromOffset(18, 18), LayoutOrder = order, Parent = parent})
+	local chk = new("ImageLabel", {Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromRGB(190, 190, 195), BackgroundTransparency = D.ICON.checker and 1 or 0, BorderSizePixel = 0, Image = D.ICON.checker or "", ScaleType = Enum.ScaleType.Tile, TileSize = UDim2.fromOffset(12, 12), Parent = b})
+	corner(chk, 5)
+	local fill = frame({Size = UDim2.fromScale(1, 1), BackgroundColor3 = T.white, Parent = b})
+	corner(fill, 5)
+	stroke(fill, 0.8)
+	local function draw()
+		local c, a = D.parseColor(S[flag])
+		fill.BackgroundColor3 = c
+		fill.BackgroundTransparency = 1 - a
+		chk.Visible = a < 0.995
+	end
+	draw()
+	scope[#scope + 1] = D.watch(flag, draw)
+	b.MouseEnter:Connect(function() tween(b, 0.12, {Size = UDim2.fromOffset(20, 20)}) end)
+	b.MouseLeave:Connect(function() tween(b, 0.16, {Size = UDim2.fromOffset(18, 18)}) end)
+	b.MouseButton1Click:Connect(function()
+		D.play("click")
+		D.openColor(b, flag, level + 1)
+	end)
+	return b
+end
+
+function D.makeBindTag(parent, flag, label, scope, order, level, isHovered)
+	local b = button({Size = UDim2.fromOffset(0, 18), AutomaticSize = Enum.AutomaticSize.X, BackgroundColor3 = T.field, BackgroundTransparency = 0, TextSize = 11, TextColor3 = T.sub, LayoutOrder = order, Parent = parent})
+	corner(b, 5)
+	stroke(b, 0.9)
+	pad(b, 0, 6, 0, 6)
+	new("UISizeConstraint", {MinSize = Vector2.new(22, 18), Parent = b})
+	local dots = icon("ellipsis", 14, T.sub, {AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Parent = b})
+	local function refresh()
+		local bd = D.getBind(flag)
+		local bound = bd.key ~= "None" or bd.mode == "Always"
+		local open = D.pops[level + 1] ~= nil and D.pops[level + 1].anchor == b
+		b.Visible = bound or isHovered() or open
+		dots.Visible = not bound
+		if bound then
+			b.Text = bd.mode == "Always" and "always" or D.keyName(bd.key)
+			b.TextColor3 = S[flag] and D.accentText() or T.sub
+		else
+			b.Text = ""
+		end
+		b.BackgroundTransparency = bound and 0 or 1
+		D.iconColor(dots, open and T.text or T.sub)
+	end
+	refresh()
+	scope[#scope + 1] = D.watch("__bind:" .. flag, refresh)
+	scope[#scope + 1] = D.watch(flag, refresh)
+	D.onAccent(b, refresh)
+	b.MouseButton1Click:Connect(function()
+		D.play("click")
+		D.openBind(b, flag, label, level + 1, false, refresh)
+	end)
+	D.tip(b, "Keybind")
+	return {btn = b, refresh = refresh}
+end
+
+function D.makeSlider(parent, spec, scope, order, compact)
+	local step = spec.step or 1
+	local dec = step >= 1 and 0 or #(string.match(tostring(step), "%.(%d+)") or "")
+	local trackW = compact and 96 or 116
+	local holder = frame({Size = UDim2.fromOffset(trackW + 62, 28), BackgroundTransparency = 1, LayoutOrder = order, Parent = parent})
+	local trk = frame({AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 6, 0.5, 0), Size = UDim2.fromOffset(trackW, 4), BackgroundColor3 = T.off, Parent = holder})
+	corner(trk, 2)
+	local fill = frame({Size = UDim2.fromScale(0, 1), BackgroundColor3 = D.accent(), Parent = trk})
+	corner(fill, 2)
+	local knob = frame({AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0, 0.5), Size = UDim2.fromOffset(12, 12), BackgroundColor3 = T.white, ZIndex = 2, Parent = trk})
+	corner(knob, 6)
+	local ring = new("UIStroke", {Color = T.light and Color3.fromRGB(150, 150, 160) or D.accent(), Thickness = T.light and 1 or 0, Transparency = T.light and 0.4 or 0.3, Parent = knob})
+	local box = new("TextBox", {AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, 0, 0.5, 0), Size = UDim2.fromOffset(48, 24), BackgroundColor3 = T.field, BorderSizePixel = 0, Text = "", FontFace = D.F(D.W.med), TextSize = 12, TextColor3 = T.label, ClearTextOnFocus = false, Parent = holder})
+	corner(box, M.rChip + 1)
+	stroke(box, 0.92)
+	local hit = button({Size = UDim2.new(0, trackW + 12, 1, 0), Parent = holder})
+	local dragging = false
+	local function fmt(v)
+		if spec.maxLabel and v >= spec.max then return spec.maxLabel end
+		return string.format("%." .. dec .. "f", v) .. (spec.suf or "")
+	end
+	local function position(v, animate)
+		local a = math.clamp((v - spec.min) / (spec.max - spec.min), 0, 1)
+		if animate then
+			tween(fill, 0.2, {Size = UDim2.fromScale(a, 1)})
+			tween(knob, 0.2, {Position = UDim2.fromScale(a, 0.5)})
+		else
+			fill.Size = UDim2.fromScale(a, 1)
+			knob.Position = UDim2.fromScale(a, 0.5)
+		end
+	end
+	local pending
+	local function draw(animate)
+		local v = pending or S[spec.id] or spec.min
+		position(v, animate)
+		if not box:IsFocused() then box.Text = fmt(v) end
+	end
+	local function quantize(v)
+		v = math.clamp(math.floor((v - spec.min) / step + 0.5) * step + spec.min, spec.min, spec.max)
+		return tonumber(string.format("%." .. dec .. "f", v))
+	end
+	draw(false)
+	scope[#scope + 1] = D.watch(spec.id, function() if not dragging then draw(true) end end)
+	D.onAccent(fill, function(a)
+		fill.BackgroundColor3 = a
+		if not T.light then ring.Color = a end
+	end)
+	local function grow(on)
+		tween(knob, 0.16, {Size = on and UDim2.fromOffset(16, 16) or UDim2.fromOffset(12, 12)})
+		ring.Color = on and D.accent() or (T.light and Color3.fromRGB(150, 150, 160) or D.accent())
+		tween(ring, 0.16, {Thickness = on and 3 or (T.light and 1 or 0)})
+	end
+	hit.MouseEnter:Connect(function() if not dragging then tween(knob, 0.14, {Size = UDim2.fromOffset(14, 14)}) end end)
+	hit.MouseLeave:Connect(function() if not dragging then tween(knob, 0.16, {Size = UDim2.fromOffset(12, 12)}) end end)
+	hit.MouseButton1Down:Connect(function()
+		local x0, w0 = D.spos(trk).X, math.max(trk.AbsoluteSize.X, 1)
+		dragging = true
+		grow(true)
+		box.TextColor3 = D.accentText()
+		local lastV
+		D.startDrag(function(x)
+			local v = quantize(spec.min + math.clamp((x - x0) / w0, 0, 1) * (spec.max - spec.min))
+			if v ~= lastV then
+				lastV = v
+				D.play("slider", 0.9 + 0.3 * ((v - spec.min) / (spec.max - spec.min)))
+			end
+			if spec.commit then
+				pending = v
+				draw(false)
+			else
+				position(v, false)
+				box.Text = fmt(v)
+				if v ~= S[spec.id] then set(spec.id, v) end
+			end
+		end, function()
+			dragging = false
+			grow(false)
+			box.TextColor3 = T.label
+			if spec.commit and pending then
+				local v = pending
+				pending = nil
+				set(spec.id, v)
+			end
+			draw(false)
+		end)
+	end)
+	box.Focused:Connect(function() box.Text = string.format("%." .. dec .. "f", S[spec.id] or spec.min) end)
+	box.FocusLost:Connect(function()
+		local n = tonumber(string.match(box.Text, "-?[%d%.]+"))
+		if n then set(spec.id, quantize(n)) end
+		box.Text = fmt(S[spec.id])
+		draw(true)
+	end)
+	return holder
+end
+
+function D.makeDropdown(parent, spec, scope, order, level)
+	local b = button({Size = UDim2.fromOffset(spec.width or 150, 28), BackgroundColor3 = T.field, BackgroundTransparency = 0, LayoutOrder = order, Parent = parent})
+	corner(b, M.rField)
+	stroke(b, 0.92)
+	local t = text({Position = UDim2.fromOffset(10, 0), Size = UDim2.new(1, -34, 1, 0), TextSize = 13, TextTruncate = Enum.TextTruncate.AtEnd, Parent = b})
+	local chev = icon("chevron-down", 14, T.sub, {AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -9, 0.5, 0), Parent = b})
+	local function draw()
+		local v = S[spec.id]
+		local empty
+		if spec.multi then
+			empty = not (type(v) == "table" and #v > 0)
+			t.Text = empty and (spec.placeholder or "None") or (#v > 2 and (#v .. " selected") or table.concat(v, ", "))
+		else
+			empty = v == nil or v == ""
+			t.Text = empty and (spec.placeholder or "Select") or tostring(v)
+		end
+		t.TextColor3 = empty and T.dim or T.label
+	end
+	draw()
+	scope[#scope + 1] = D.watch(spec.id, draw)
+	D.hoverFade(b, "BackgroundColor3", T.field, T.hover)
+	b.MouseButton1Click:Connect(function()
+		D.play("click")
+		tween(chev, 0.2, {Rotation = 180})
+		D.openList(b, spec, level + 1, function() if chev.Parent then tween(chev, 0.2, {Rotation = 0}) end end)
+	end)
+	return b
+end
+
+function D.makeInput(parent, spec, scope, order)
+	local b = new("TextBox", {Size = UDim2.fromOffset(spec.width or 150, 28), BackgroundColor3 = T.field, BorderSizePixel = 0, Text = tostring(S[spec.id] or ""), PlaceholderText = spec.placeholder or "", PlaceholderColor3 = T.dim, TextColor3 = T.label, FontFace = D.F(D.W.med), TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false, ClipsDescendants = true, LayoutOrder = order, Parent = parent})
+	corner(b, M.rField)
+	local st = stroke(b, 0.92)
+	pad(b, 0, 10, 0, 10)
+	b.Focused:Connect(function()
+		st.Color = D.accent()
+		tween(st, 0.15, {Transparency = 0.35})
+	end)
+	b.FocusLost:Connect(function()
+		tween(st, 0.2, {Transparency = 0.92})
+		task.delay(D.tweenTime(0.2), function() if st.Parent then st.Color = T.ink end end)
+		set(spec.id, b.Text)
+	end)
+	if spec.live then
+		b:GetPropertyChangedSignal("Text"):Connect(function() if b:IsFocused() then set(spec.id, b.Text) end end)
+	end
+	scope[#scope + 1] = D.watch(spec.id, function(v) if not b:IsFocused() then b.Text = tostring(v or "") end end)
+	return b
+end
+
+function D.makeKeyChip(parent, get, setKey, scope, order, watchKey, opts)
+	local b = button({Size = UDim2.fromOffset(0, 24), AutomaticSize = Enum.AutomaticSize.X, BackgroundColor3 = T.field, BackgroundTransparency = 0, TextSize = 12, TextColor3 = T.label, LayoutOrder = order, Parent = parent})
+	corner(b, M.rChip + 1)
+	stroke(b, 0.92)
+	pad(b, 0, 10, 0, 10)
+	new("UISizeConstraint", {MinSize = Vector2.new(44, 24), Parent = b})
+	local function draw()
+		b.Text = D.keyName(get())
+		b.TextColor3 = T.label
+	end
+	draw()
+	scope[#scope + 1] = D.watch(watchKey, draw)
+	b.MouseButton1Click:Connect(function()
+		if D.listening and D.listening.chip == b then
+			D.listening.stop(nil)
+			return
+		end
+		b.Text = "press a key"
+		b.TextColor3 = D.accentText()
+		D.startListen(b, function(k)
+			if k then setKey(k) end
+			if b.Parent then draw() end
+		end, opts)
+	end)
+	return b
+end
+
+function D.makeInfo(parent, spec, scope, order)
+	local t = text({Text = tostring(S[spec.id] or ""), Size = UDim2.fromOffset(0, 28), AutomaticSize = Enum.AutomaticSize.X, TextSize = 13, TextColor3 = T.sub, TextXAlignment = Enum.TextXAlignment.Right, TextTruncate = Enum.TextTruncate.AtEnd, LayoutOrder = order, Parent = parent})
+	new("UISizeConstraint", {MaxSize = Vector2.new(spec.maxw or 190, 28), Parent = t})
+	scope[#scope + 1] = D.watch(spec.id, function(v) t.Text = tostring(v) end)
+	return t
+end
+
+function D.makeSegment(parent, opts, get, onPick, width, order)
+	local n = #opts
+	local gap = 2
+	local wrap = frame({Size = UDim2.fromOffset(n * width + (n - 1) * gap + 4, 28), BackgroundColor3 = T.field, LayoutOrder = order, Parent = parent})
+	corner(wrap, M.rField)
+	stroke(wrap, 0.92)
+	local hl = frame({Position = UDim2.fromOffset(2, 2), Size = UDim2.fromOffset(width, 24), BackgroundColor3 = D.accent(), BackgroundTransparency = 0.78, Parent = wrap})
+	corner(hl, math.max(3, M.rField - 2))
+	local labels = {}
+	for i, o in ipairs(opts) do
+		local b = button({Position = UDim2.fromOffset(2 + (i - 1) * (width + gap), 2), Size = UDim2.fromOffset(width, 24), Text = o[2] or o[1], TextSize = 12, TextColor3 = T.sub, ZIndex = 2, Parent = wrap})
+		labels[i] = b
+		b.MouseButton1Click:Connect(function()
+			D.play("click")
+			onPick(o[1])
+		end)
+	end
+	local function draw(animate)
+		local cur = get()
+		for i, o in ipairs(opts) do
+			local act = o[1] == cur
+			labels[i].TextColor3 = act and D.accentText() or T.sub
+			if act then
+				local pos = UDim2.fromOffset(2 + (i - 1) * (width + gap), 2)
+				if animate then tween(hl, 0.26, {Position = pos}, Enum.EasingStyle.Back) else hl.Position = pos end
+			end
+		end
+	end
+	draw(false)
+	D.onAccent(hl, function(a)
+		hl.BackgroundColor3 = a
+		draw(false)
+	end)
+	return wrap, draw
+end
+end
+do
+local new, frame, text, button, icon = D.new, D.frame, D.text, D.button, D.icon
+local corner, stroke, pad, vlist, hlist = D.corner, D.stroke, D.pad, D.vlist, D.hlist
+local tween, set = D.tween, D.set
+
+function D.openList(anchor, spec, level, onClose)
+	local opts = type(spec.opts) == "function" and spec.opts() or spec.opts
+	local minWidth = spec.listWidth or (spec.multi and 210 or 190)
+	local w = math.max(math.floor(anchor.AbsoluteSize.X / math.max(D.uiScale(), 0.01) + 0.5), minWidth)
+	local fontPreview = spec.fontPreview or (spec.id and (string.find(spec.id, "font") ~= nil))
+	D.openPop(level, anchor, {width = w, place = "below", pad = 5, gap = 4, onClose = onClose}, function(body, scope)
+		local filter = ""
+		local searchBox
+		local showSearch = spec.search ~= false and #opts > 0
+		if showSearch then
+			local sb = frame({Size = UDim2.new(1, 0, 0, 30), BackgroundColor3 = T.field, LayoutOrder = 1, Parent = body})
+			corner(sb, M.rField)
+			icon("search", 13, T.dim, {AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 9, 0.5, 0), Parent = sb})
+			searchBox = new("TextBox", {Position = UDim2.fromOffset(28, 0), Size = UDim2.new(1, -34, 1, 0), BackgroundTransparency = 1, Text = "", PlaceholderText = spec.searchPlaceholder or "Search...", PlaceholderColor3 = T.dim, TextColor3 = T.label, FontFace = D.F(D.W.med), TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false, Parent = sb})
+		end
+
+		local items = {}
+		local function isSel(o)
+			if spec.multi then return type(S[spec.id]) == "table" and table.find(S[spec.id], o) ~= nil end
+			return S[spec.id] == o
+		end
+		local function draw()
+			for _, it in ipairs(items) do
+				local sel = isSel(it.o)
+				it.t.TextColor3 = sel and T.text or T.label
+				it.c.Visible = sel
+			end
+		end
+
+		local actions
+		if spec.multi and spec.selectAll ~= false and #opts > 0 then
+			actions = frame({Size = UDim2.new(1, 0, 0, 24), BackgroundTransparency = 1, LayoutOrder = 2, Parent = body})
+			hlist(actions, 4)
+
+			local btnSelectAll = button({Size = UDim2.new(0.5, -2, 1, 0), BackgroundColor3 = T.field, BackgroundTransparency = 0, Text = "Select All", TextSize = 11, TextColor3 = T.label, LayoutOrder = 1, Parent = actions})
+			corner(btnSelectAll, M.rChip)
+			stroke(btnSelectAll, 0.92)
+			D.hoverFade(btnSelectAll, "BackgroundColor3", T.field, T.hover)
+
+			local btnDeselectAll = button({Size = UDim2.new(0.5, -2, 1, 0), BackgroundColor3 = T.field, BackgroundTransparency = 0, Text = "Deselect All", TextSize = 11, TextColor3 = T.label, LayoutOrder = 2, Parent = actions})
+			corner(btnDeselectAll, M.rChip)
+			stroke(btnDeselectAll, 0.92)
+			D.hoverFade(btnDeselectAll, "BackgroundColor3", T.field, T.hover)
+
+			btnSelectAll.MouseButton1Click:Connect(function()
+				D.play("click")
+				local cur = type(S[spec.id]) == "table" and table.clone(S[spec.id]) or {}
+				for _, it in ipairs(items) do
+					if filter == "" or string.find(string.lower(tostring(it.o)), filter, 1, true) ~= nil then
+						if not table.find(cur, it.o) then
+							cur[#cur + 1] = it.o
+						end
+					end
+				end
+				table.sort(cur, function(a, bb) return (table.find(opts, a) or 0) < (table.find(opts, bb) or 0) end)
+				set(spec.id, cur)
+				draw()
+			end)
+
+			btnDeselectAll.MouseButton1Click:Connect(function()
+				D.play("click")
+				local cur = type(S[spec.id]) == "table" and table.clone(S[spec.id]) or {}
+				if filter == "" then
+					cur = {}
+				else
+					for _, it in ipairs(items) do
+						if string.find(string.lower(tostring(it.o)), filter, 1, true) ~= nil then
+							local idx = table.find(cur, it.o)
+							if idx then table.remove(cur, idx) end
+						end
+					end
+				end
+				set(spec.id, cur)
+				draw()
+			end)
+		end
+
+		local shown = math.min(#opts, 8)
+		local list = new("ScrollingFrame", {Size = UDim2.new(1, 0, 0, math.max(shown, 1) * 30), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = #opts > shown and 3 or 0, ScrollBarImageColor3 = T.ink, ScrollBarImageTransparency = 0.8, CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y, ScrollingDirection = Enum.ScrollingDirection.Y, LayoutOrder = 3, Parent = body})
+		vlist(list, 0)
+
+		for i, o in ipairs(opts) do
+			local b = button({Size = UDim2.new(1, 0, 0, 30), BackgroundColor3 = T.ink, BackgroundTransparency = 1, LayoutOrder = i, Parent = list})
+			corner(b, math.max(3, M.rField - 1))
+			local t = text({Text = tostring(o), Position = UDim2.fromOffset(10, 0), Size = UDim2.new(1, -38, 1, 0), TextSize = 13, TextTruncate = Enum.TextTruncate.AtEnd, Parent = b})
+			if fontPreview then t.FontFace = D.textFont(o) end
+			local c = icon("check", 14, D.accentText(), {AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -10, 0.5, 0), Parent = b})
+			items[#items + 1] = {o = o, t = t, c = c, b = b}
+			if i <= 12 and S.ui_anim ~= false then
+				t.Position = UDim2.fromOffset(10, 6)
+				t.TextTransparency = 1
+				task.delay(D.tweenTime(0.015 * i), function()
+					if t.Parent then tween(t, 0.22, {Position = UDim2.fromOffset(10, 0), TextTransparency = 0}) end
+				end)
+			end
+			b.MouseEnter:Connect(function()
+				tween(b, 0.1, {BackgroundTransparency = 0.95})
+				D.play("hover")
+			end)
+			b.MouseLeave:Connect(function() tween(b, 0.14, {BackgroundTransparency = 1}) end)
+			b.MouseButton1Click:Connect(function()
+				if spec.preview then D.playName(o) else D.play("click") end
+				if spec.multi then
+					local cur = type(S[spec.id]) == "table" and table.clone(S[spec.id]) or {}
+					local idx = table.find(cur, o)
+					if idx then table.remove(cur, idx) else cur[#cur + 1] = o end
+					table.sort(cur, function(a, bb) return (table.find(opts, a) or 0) < (table.find(opts, bb) or 0) end)
+					set(spec.id, cur)
+					draw()
+				else
+					D.closePops(level)
+					if spec.onPick then spec.onPick(o) else set(spec.id, o) end
+				end
+			end)
+		end
+		if #opts == 0 then
+			text({Text = "No options", Size = UDim2.new(1, 0, 0, 30), TextSize = 13, TextColor3 = T.dim, TextXAlignment = Enum.TextXAlignment.Center, Parent = list})
+		end
+		local noResults = text({Text = "No results", Size = UDim2.new(1, 0, 0, 30), TextSize = 13, TextColor3 = T.dim, TextXAlignment = Enum.TextXAlignment.Center, Visible = false, LayoutOrder = 999999, Parent = list})
+		if searchBox then
+			searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+				filter = string.lower(searchBox.Text)
+				local n = 0
+				for _, it in ipairs(items) do
+					local vis = filter == "" or string.find(string.lower(tostring(it.o)), filter, 1, true) ~= nil
+					it.b.Visible = vis
+					if vis then n += 1 end
+				end
+				list.Size = UDim2.new(1, 0, 0, math.max(math.min(n, 8), 1) * 30)
+				noResults.Visible = (filter ~= "" and n == 0)
+			end)
+		end
+		draw()
+		for i, it in ipairs(items) do
+			if isSel(it.o) and i > 8 then
+				list.CanvasPosition = Vector2.new(0, (i - 4) * 30)
+				break
+			end
+		end
+	end)
+end
+
+local RAINBOW = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+	ColorSequenceKeypoint.new(1 / 6, Color3.fromRGB(255, 255, 0)),
+	ColorSequenceKeypoint.new(2 / 6, Color3.fromRGB(0, 255, 0)),
+	ColorSequenceKeypoint.new(3 / 6, Color3.fromRGB(0, 255, 255)),
+	ColorSequenceKeypoint.new(4 / 6, Color3.fromRGB(0, 0, 255)),
+	ColorSequenceKeypoint.new(5 / 6, Color3.fromRGB(255, 0, 255)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0)),
+})
+
+local function pushRecent(hex)
+	local r = D.META.recent
+	if type(r) ~= "table" then r = {} end
+	local idx = table.find(r, hex)
+	if idx then table.remove(r, idx) end
+	table.insert(r, 1, hex)
+	while #r > 9 do table.remove(r) end
+	D.META.recent = r
+end
+
+function D.openColor(anchor, flag, level)
+	local W = 232
+	D.openPop(level, anchor, {width = W + 24, key = "color:" .. flag, onClose = function()
+		pushRecent(S[flag])
+		D.writeMeta()
+	end}, function(body, scope)
+		local c0, a = D.parseColor(S[flag])
+		local h, s, v = c0:ToHSV()
+		local mode = "HEX"
+
+		local sv = frame({Size = UDim2.fromOffset(W, 150), BackgroundColor3 = Color3.fromHSV(h, 1, 1), LayoutOrder = 1, Parent = body})
+		corner(sv, M.rField + 1)
+		local wl = frame({Size = UDim2.fromScale(1, 1), BackgroundColor3 = T.white, Parent = sv})
+		corner(wl, M.rField + 1)
+		new("UIGradient", {Transparency = NumberSequence.new(0, 1), Parent = wl})
+		local bl = frame({Size = UDim2.fromScale(1, 1), BackgroundColor3 = T.black, Parent = sv})
+		corner(bl, M.rField + 1)
+		new("UIGradient", {Transparency = NumberSequence.new(0, 1), Rotation = 270, Parent = bl})
+		local svKnob = frame({AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(14, 14), BackgroundTransparency = 1, ZIndex = 3, Parent = sv})
+		corner(svKnob, 7)
+		new("UIStroke", {Color = T.white, Thickness = 2, Parent = svKnob})
+		local svHit = button({Size = UDim2.fromScale(1, 1), ZIndex = 4, Parent = sv})
+
+		local function bar(order)
+			local b = frame({Size = UDim2.fromOffset(W, 12), BackgroundColor3 = T.white, LayoutOrder = order, Parent = body})
+			corner(b, 6)
+			local knob = frame({AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0, 0.5), Size = UDim2.fromOffset(16, 16), BackgroundColor3 = T.white, ZIndex = 3, Parent = b})
+			corner(knob, 8)
+			new("UIStroke", {Color = T.black, Transparency = 0.55, Thickness = 1, Parent = knob})
+			local hit = button({Position = UDim2.fromOffset(0, -5), Size = UDim2.new(1, 0, 1, 10), ZIndex = 4, Parent = b})
+			return b, knob, hit
+		end
+		local hue, hueKnob, hueHit = bar(2)
+		new("UIGradient", {Color = RAINBOW, Parent = hue})
+		local alpha, alphaKnob, alphaHit = bar(3)
+		alpha.BackgroundTransparency = 1
+		local chk = new("ImageLabel", {Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromRGB(190, 190, 195), BackgroundTransparency = D.ICON.checker and 1 or 0, BorderSizePixel = 0, Image = D.ICON.checker or "", ScaleType = Enum.ScaleType.Tile, TileSize = UDim2.fromOffset(12, 12), Parent = alpha})
+		corner(chk, 6)
+		local alphaFill = frame({Size = UDim2.fromScale(1, 1), BackgroundColor3 = c0, ZIndex = 2, Parent = alpha})
+		corner(alphaFill, 6)
+		new("UIGradient", {Transparency = NumberSequence.new(1, 0), Parent = alphaFill})
+
+		local bottom = frame({Size = UDim2.fromOffset(W, 28), BackgroundTransparency = 1, LayoutOrder = 4, Parent = body})
+		hlist(bottom, 6)
+		local fmtBtn = button({Size = UDim2.fromOffset(52, 28), BackgroundColor3 = T.field, BackgroundTransparency = 0, Text = "HEX", TextSize = 12, TextColor3 = T.label, LayoutOrder = 1, Parent = bottom})
+		corner(fmtBtn, M.rField)
+		stroke(fmtBtn, 0.92)
+		D.tip(fmtBtn, "Switch between HEX, RGB and HSV")
+		local inBox = frame({Size = UDim2.fromOffset(124, 28), BackgroundColor3 = T.field, LayoutOrder = 2, Parent = bottom})
+		corner(inBox, M.rField)
+		stroke(inBox, 0.92)
+		local sw = frame({AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 8, 0.5, 0), Size = UDim2.fromOffset(12, 12), BackgroundColor3 = c0, Parent = inBox})
+		corner(sw, 3)
+		stroke(sw, 0.8)
+		local box = new("TextBox", {Position = UDim2.fromOffset(26, 0), Size = UDim2.new(1, -30, 1, 0), BackgroundTransparency = 1, Text = "", FontFace = D.F(D.W.med), TextSize = 12, TextColor3 = T.label, TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false, ClipsDescendants = true, Parent = inBox})
+		local pct = new("TextBox", {Size = UDim2.fromOffset(44, 28), BackgroundColor3 = T.field, BorderSizePixel = 0, Text = "", FontFace = D.F(D.W.med), TextSize = 12, TextColor3 = T.label, ClearTextOnFocus = false, LayoutOrder = 3, Parent = bottom})
+		corner(pct, M.rField)
+		stroke(pct, 0.92)
+
+		local recentRow = frame({Size = UDim2.fromOffset(W, 20), BackgroundTransparency = 1, LayoutOrder = 5, Parent = body})
+		hlist(recentRow, 6)
+
+		local busy = false
+		local function draw(push)
+			local c = Color3.fromHSV(h, s, v)
+			sv.BackgroundColor3 = Color3.fromHSV(h, 1, 1)
+			svKnob.Position = UDim2.fromScale(s, 1 - v)
+			hueKnob.Position = UDim2.fromScale(h, 0.5)
+			alphaFill.BackgroundColor3 = c
+			alphaKnob.Position = UDim2.fromScale(a, 0.5)
+			sw.BackgroundColor3 = c
+			sw.BackgroundTransparency = 1 - a
+			fmtBtn.Text = mode
+			if not box:IsFocused() then
+				if mode == "HEX" then
+					box.Text = D.toHex(c, a)
+				elseif mode == "RGB" then
+					box.Text = string.format("%d, %d, %d", math.floor(c.R * 255 + 0.5), math.floor(c.G * 255 + 0.5), math.floor(c.B * 255 + 0.5))
+				else
+					box.Text = string.format("%d, %d%%, %d%%", math.floor(h * 360 + 0.5), math.floor(s * 100 + 0.5), math.floor(v * 100 + 0.5))
+				end
+			end
+			if not pct:IsFocused() then pct.Text = math.floor(a * 100 + 0.5) .. "%" end
+			if push then
+				busy = true
+				set(flag, D.toHex(c, a))
+				busy = false
+			end
+		end
+		scope[#scope + 1] = D.watch(flag, function(val)
+			if busy then return end
+			local c
+			c, a = D.parseColor(val)
+			h, s, v = c:ToHSV()
+			draw(false)
+		end)
+
+		local function swatchBtn(hexv, order, tipText)
+			local c, al = D.parseColor(hexv)
+			local b = button({Size = UDim2.fromOffset(20, 20), BackgroundColor3 = c, BackgroundTransparency = 1 - math.max(al, 0.25), LayoutOrder = order, Parent = recentRow})
+			corner(b, 5)
+			stroke(b, 0.84)
+			if tipText then D.tip(b, tipText) end
+			b.MouseButton1Click:Connect(function()
+				D.play("click")
+				local cc
+				cc, a = D.parseColor(hexv)
+				h, s, v = cc:ToHSV()
+				draw(true)
+			end)
+		end
+		local recent = type(D.META.recent) == "table" and D.META.recent or {}
+		for i = 1, math.min(#recent, 7) do swatchBtn(recent[i], i) end
+		local spacer = frame({Size = UDim2.fromOffset(0, 20), BackgroundTransparency = 1, LayoutOrder = 50, Parent = recentRow})
+		new("UIFlexItem", {FlexMode = Enum.UIFlexMode.Fill, Parent = spacer})
+		local copyB = icon("copy", 14, T.sub, {Button = true, Size = UDim2.fromOffset(20, 20), LayoutOrder = 51, Parent = recentRow})
+		D.tip(copyB, "Copy color")
+		copyB.MouseButton1Click:Connect(function()
+			if setclipboard then setclipboard(S[flag]) end
+			D.notify("Copied", tostring(S[flag]), {icon = "copy", dur = 2})
+		end)
+		local pasteB = icon("clipboard", 14, T.sub, {Button = true, Size = UDim2.fromOffset(20, 20), LayoutOrder = 52, Parent = recentRow})
+		D.tip(pasteB, "Paste color")
+		pasteB.MouseButton1Click:Connect(function()
+			local raw
+			if getclipboard then
+				local ok, r = pcall(getclipboard)
+				if ok then raw = r end
+			end
+			local hx = raw and string.match(raw, "#?(%x%x%x%x%x%x%x?%x?)")
+			if hx then
+				local cc
+				cc, a = D.parseColor(hx)
+				h, s, v = cc:ToHSV()
+				draw(true)
+			else
+				D.notify("Paste", "No color found on the clipboard.", {icon = "triangle-alert", sound = "error", dur = 2.5})
+			end
+		end)
+
+		svHit.MouseButton1Down:Connect(function()
+			local p0, sz = D.spos(sv), sv.AbsoluteSize
+			D.startDrag(function(x, y)
+				s = math.clamp((x - p0.X) / sz.X, 0, 1)
+				v = 1 - math.clamp((y - p0.Y) / sz.Y, 0, 1)
+				draw(true)
+			end, nil, body)
+		end)
+		hueHit.MouseButton1Down:Connect(function()
+			local p0, sz = D.spos(hue), hue.AbsoluteSize
+			D.startDrag(function(x)
+				h = math.clamp((x - p0.X) / sz.X, 0, 0.999)
+				draw(true)
+			end, nil, body)
+		end)
+		alphaHit.MouseButton1Down:Connect(function()
+			local p0, sz = D.spos(alpha), alpha.AbsoluteSize
+			D.startDrag(function(x)
+				a = math.clamp((x - p0.X) / sz.X, 0, 1)
+				draw(true)
+			end, nil, body)
+		end)
+		fmtBtn.MouseButton1Click:Connect(function()
+			D.play("click")
+			mode = mode == "HEX" and "RGB" or (mode == "RGB" and "HSV" or "HEX")
+			draw(false)
+		end)
+		box.FocusLost:Connect(function()
+			local txt = box.Text
+			if mode == "HEX" then
+				local hx = string.match(txt, "#?(%x+)")
+				if hx and (#hx == 6 or #hx == 8) then
+					local c, na = D.parseColor(hx)
+					h, s, v = c:ToHSV()
+					if #hx == 8 then a = na end
+				end
+			else
+				local p1, p2, p3 = string.match(txt, "(%d+)%D+(%d+)%D+(%d+)")
+				if p1 then
+					if mode == "RGB" then
+						local c = Color3.fromRGB(math.clamp(tonumber(p1), 0, 255), math.clamp(tonumber(p2), 0, 255), math.clamp(tonumber(p3), 0, 255))
+						h, s, v = c:ToHSV()
+					else
+						h = math.clamp(tonumber(p1) / 360, 0, 0.999)
+						s = math.clamp(tonumber(p2) / 100, 0, 1)
+						v = math.clamp(tonumber(p3) / 100, 0, 1)
+					end
+				end
+			end
+			draw(true)
+		end)
+		pct.FocusLost:Connect(function()
+			local n = tonumber(string.match(pct.Text, "%d+"))
+			if n then a = math.clamp(n, 0, 100) / 100 end
+			draw(true)
+		end)
+		draw(false)
+	end)
+end
+
+local MODE_INFO = {
+	Toggle = {"power", "Press to turn on or off", "Toggle"},
+	Hold = {"circle-dot", "On while held", "Hold"},
+	Always = {"infinity", "Always active", "Always On"},
+	Release = {"eye-off", "Off while held", "Hold Off"},
+}
+
+function D.openBind(anchor, flag, label, level, isAction, onClose)
+	D.openPop(level, anchor, {width = 300, title = label, subtitle = isAction and "Shortcut" or "Keybind", key = "bind:" .. flag, onClose = onClose}, function(body, scope, lvl)
+		local card = frame({Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = T.card, LayoutOrder = 1, Parent = body})
+		corner(card, M.rCard)
+		stroke(card, 0.95)
+		D.pad(card, 10)
+		local cap = button({Size = UDim2.new(1, 0, 0, 44), BackgroundColor3 = T.field, BackgroundTransparency = 0, Text = "", Parent = card})
+		corner(cap, M.rField + 1)
+		stroke(cap, 0.9)
+		icon("keyboard", 16, T.sub, {AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 12, 0.5, 0), Parent = cap})
+		local capText = text({Position = UDim2.fromOffset(38, 0), Size = UDim2.new(1, -80, 1, 0), FontFace = D.F(D.W.semi), TextSize = 15, TextColor3 = T.text, Parent = cap})
+		local capHint = text({AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -38, 0, 0), Size = UDim2.new(0, 110, 1, 0), TextSize = 11, TextColor3 = T.dim, TextXAlignment = Enum.TextXAlignment.Right, Parent = cap})
+		local clear = icon("x", 14, T.sub, {Button = true, AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12, 0.5, 0), Size = UDim2.fromOffset(18, 18), ZIndex = 3, Parent = cap})
+		D.tip(clear, "Clear key")
+		local function drawCap()
+			local bd = D.getBind(flag)
+			capText.Text = bd.key == "None" and "No key" or string.upper(D.keyName(bd.key))
+			capText.TextColor3 = bd.key == "None" and T.sub or T.text
+			capHint.Text = "click to change"
+			clear.Visible = bd.key ~= "None"
+		end
+		drawCap()
+		scope[#scope + 1] = D.watch("__bind:" .. flag, drawCap)
+		cap.MouseButton1Click:Connect(function()
+			if D.listening and D.listening.chip == cap then
+				D.listening.stop(nil)
+				return
+			end
+			capText.Text = "Press any key..."
+			capText.TextColor3 = D.accentText()
+			capHint.Text = "Esc to cancel"
+			D.startListen(cap, function(k)
+				if k then
+					D.getBind(flag).key = k
+					D.bindChanged(flag)
+				end
+				if cap.Parent then drawCap() end
+			end)
+		end)
+		clear.MouseButton1Click:Connect(function()
+			D.play("click")
+			D.getBind(flag).key = "None"
+			D.bindChanged(flag)
+		end)
+
+		if not isAction then
+			local grid = frame({Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = 2, Parent = body})
+			new("UIGridLayout", {CellSize = UDim2.new(0.5, -4, 0, 56), CellPadding = UDim2.fromOffset(8, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = grid})
+			local tiles = {}
+			for i, mode in ipairs(D.MODES) do
+				local info = MODE_INFO[mode]
+				local t = button({BackgroundColor3 = T.card, BackgroundTransparency = 0, LayoutOrder = i, Parent = grid})
+				corner(t, M.rCard)
+				local st = stroke(t, 0.93)
+				local ic = icon(info[1], 16, T.sub, {Position = UDim2.fromOffset(12, 11), Parent = t})
+				local nm = text({Text = info[3] or mode, Position = UDim2.fromOffset(34, 9), Size = UDim2.new(1, -40, 0, 18), FontFace = D.F(D.W.semi), TextSize = 13, TextColor3 = T.label, Parent = t})
+				text({Text = info[2], Position = UDim2.fromOffset(12, 31), Size = UDim2.new(1, -16, 0, 14), TextSize = 11, TextColor3 = T.dim, TextTruncate = Enum.TextTruncate.AtEnd, Parent = t})
+				tiles[mode] = {t = t, st = st, ic = ic, nm = nm}
+				t.MouseEnter:Connect(function() if D.getBind(flag).mode ~= mode then tween(t, 0.12, {BackgroundColor3 = T.field}) end end)
+				t.MouseLeave:Connect(function() if D.getBind(flag).mode ~= mode then tween(t, 0.16, {BackgroundColor3 = T.card}) end end)
+				t.MouseButton1Click:Connect(function()
+					D.play("toggle")
+					local bd = D.getBind(flag)
+					bd.mode = mode
+					if mode == "Always" or mode == "Release" then
+						set(flag, true)
+					elseif mode == "Hold" then
+						set(flag, false)
+					end
+					D.bindChanged(flag)
+				end)
+			end
+			local function drawTiles()
+				local cur = D.getBind(flag).mode
+				local a = D.accent()
+				for mode, tl in pairs(tiles) do
+					local act = mode == cur
+					tl.st.Color = act and a or T.ink
+					tween(tl.st, 0.18, {Transparency = act and 0.25 or 0.93})
+					tween(tl.t, 0.18, {BackgroundColor3 = act and T.card:Lerp(a, T.light and 0.08 or 0.14) or T.card})
+					D.iconColor(tl.ic, act and D.accentText() or T.sub)
+					tl.nm.TextColor3 = act and T.text or T.label
+				end
+			end
+			drawTiles()
+			scope[#scope + 1] = D.watch("__bind:" .. flag, drawTiles)
+			S["__bindlist_" .. flag] = D.getBind(flag).list ~= false
+			D.buildCard(body, {
+				{t = "toggle", id = "__bindlist_" .. flag, label = "Show In Keybind List", desc = "List this bind in the keybind overlay.", nobind = true, icon = "list"},
+			}, scope, lvl, 3)
+			scope[#scope + 1] = D.watch("__bindlist_" .. flag, function(v)
+				D.getBind(flag).list = v
+				D.bindChanged(flag)
+			end)
+		end
+		local rm = button({Size = UDim2.new(1, 0, 0, 32), BackgroundColor3 = T.field, BackgroundTransparency = 1, Text = "Remove Bind", TextSize = 13, TextColor3 = D.accentText(), LayoutOrder = 4, Parent = body})
+		corner(rm, M.rField)
+		D.hoverFade(rm, "BackgroundTransparency", 1, 0.2)
+		rm.MouseButton1Click:Connect(function()
+			D.play("click")
+			local b = D.getBind(flag)
+			b.key, b.mode, b.list = "None", "Toggle", true
+			D.bindChanged(flag)
+			D.closePops(lvl)
+		end)
+	end)
+end
+
+function D.openSub(anchor, spec, level, groupId)
+	D.openPop(level, anchor, {width = 340, title = spec.sub.title or spec.label, key = "sub:" .. tostring(spec.id) .. tostring(groupId)}, function(body, scope, lvl)
+		D.ROWREG.__pop = {}
+		for i, rows in ipairs(spec.sub.cards) do D.buildCard(body, rows, scope, lvl, i, {g = groupId, page = "__pop"}) end
+	end)
+end
+end
+do
+local new, frame, text, button, icon = D.new, D.frame, D.text, D.button, D.icon
+local corner, stroke, pad, vlist, hlist = D.corner, D.stroke, D.pad, D.vlist, D.hlist
+local tween, set = D.tween, D.set
+
+D.ROWREG = {}
+D.CUSTOM = {}
+
+local function expand(s, g)
+	if not g or not s then return s end
+	return (string.gsub(s, "{g}", g))
+end
+
+local RISKY = Color3.fromRGB(255, 108, 108)
+
+local function instance(spec, g)
+	if not g or not spec.id or not string.find(spec.id, "{g}", 1, true) then return spec end
+	local c = table.clone(spec)
+	c.id = expand(spec.id, g)
+	c.colorId = expand(spec.colorId or (spec.id .. "_color"), g)
+	c.template = spec.id
+	return c
+end
+
+function D.flashRow(r)
+	if not r or not r.Parent then return end
+	local fl = frame({Size = UDim2.fromScale(1, 1), BackgroundColor3 = D.accent(), BackgroundTransparency = 0.7, ZIndex = 5, Parent = r})
+	corner(fl, M.rField)
+	local st = new("UIStroke", {Color = D.accent(), Transparency = 0.1, Thickness = 1.5, Parent = fl})
+	tween(fl, 1.4, {BackgroundTransparency = 1}, Enum.EasingStyle.Sine)
+	tween(st, 1.4, {Transparency = 1}, Enum.EasingStyle.Sine)
+	task.delay(1.5, function() fl:Destroy() end)
+end
+
+function D.rowShell(card, spec, order, isLast, height)
+	local r = button({Size = UDim2.new(1, 0, 0, height or M.row), LayoutOrder = order, Parent = card})
+	local hov = frame({Position = UDim2.fromOffset(4, 3), Size = UDim2.new(1, -8, 1, -6), BackgroundColor3 = T.ink, BackgroundTransparency = 1, Parent = r})
+	corner(hov, M.rField)
+	local sep
+	if not isLast then
+		sep = frame({Position = UDim2.new(0, 12, 1, -1), Size = UDim2.new(1, -24, 0, 1), BackgroundColor3 = T.ink, BackgroundTransparency = 0.945, Parent = r})
+	end
+	local inner = frame({Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -24, 1, 0), BackgroundTransparency = 1, Parent = r})
+	hlist(inner, 10)
+	local ic
+	if spec.image then
+		ic = new("ImageLabel", {Size = UDim2.fromOffset(26, 26), BackgroundColor3 = T.field, BorderSizePixel = 0, Image = spec.image, LayoutOrder = 1, Parent = inner})
+		corner(ic, 13)
+	elseif spec.icon then
+		ic = icon(spec.icon, 16, spec.danger and D.accentText() or T.sub, {LayoutOrder = 1, Parent = inner})
+	end
+	local lbl = text({Text = spec.label or "", Size = UDim2.new(0, 0, 1, 0), TextColor3 = spec.risky and RISKY or (spec.danger and D.accentText() or T.label), TextTruncate = Enum.TextTruncate.AtEnd, RichText = spec.rich or false, LayoutOrder = 2, Parent = inner})
+	new("UIFlexItem", {FlexMode = Enum.UIFlexMode.Fill, Parent = lbl})
+	local right = frame({Size = UDim2.fromOffset(0, 28), AutomaticSize = Enum.AutomaticSize.X, BackgroundTransparency = 1, LayoutOrder = 3, Parent = inner})
+	hlist(right, 10, Enum.HorizontalAlignment.Right)
+	local sh = {btn = r, right = right, label = lbl, icon = ic, hov = hov, sep = sep, rest = 1, hovered = false}
+	if spec.danger then
+		D.onAccent(lbl, function()
+			lbl.TextColor3 = D.accentText()
+			if ic then D.iconColor(ic, D.accentText()) end
+		end)
+	end
+	r.MouseEnter:Connect(function()
+		sh.hovered = true
+		tween(hov, 0.14, {BackgroundTransparency = math.min(sh.rest, 0.965)})
+		if not spec.danger and not spec.risky then tween(lbl, 0.14, {TextColor3 = T.text}) end
+		D.play("hover")
+	end)
+	r.MouseLeave:Connect(function()
+		sh.hovered = false
+		tween(hov, 0.2, {BackgroundTransparency = sh.rest})
+		if not spec.danger and not spec.risky then tween(lbl, 0.2, {TextColor3 = T.label}) end
+	end)
+	if spec.desc and spec.desc ~= "" then D.tip(r, spec.desc) end
+	return sh
+end
+
+local function notifyToggle(spec, v, source)
+	local mode = S.ui_bindnotify
+	if mode == "Off" then return end
+	if mode == "Keybinds Only" and source ~= "bind" then return end
+	D.notify(D.LABELS[spec.id] or spec.label, v and "Enabled" or "Disabled", {icon = v and "circle-check" or "power", dur = 1.8, compact = true, sound = "none"})
+end
+D.notifyToggle = notifyToggle
+
+local function buttonRow(card, spec, order, isLast, scope, level)
+	local wrap = frame({Size = UDim2.new(1, 0, 0, M.row + 4), BackgroundTransparency = 1, LayoutOrder = order, Parent = card})
+	local b = button({Position = UDim2.fromOffset(8, 5), Size = UDim2.new(1, -16, 1, -10), BackgroundColor3 = T.field, BackgroundTransparency = 0, Text = "", Parent = wrap})
+	corner(b, M.rField)
+	stroke(b, 0.93)
+	local inner = frame({Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = b})
+	hlist(inner, 8, Enum.HorizontalAlignment.Center)
+	local ic
+	if spec.icon then ic = icon(spec.icon, 15, spec.danger and D.accentText() or T.sub, {LayoutOrder = 1, Parent = inner}) end
+	local t = text({Text = spec.label, Size = UDim2.fromOffset(0, 20), AutomaticSize = Enum.AutomaticSize.X, TextSize = 13, TextColor3 = spec.danger and D.accentText() or T.label, LayoutOrder = 2, Parent = inner})
+	local keyHint = text({AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -10, 0.5, 0), Size = UDim2.fromOffset(0, 20), AutomaticSize = Enum.AutomaticSize.X, TextSize = 11, TextColor3 = T.dim, TextXAlignment = Enum.TextXAlignment.Right, Parent = b})
+	if not isLast then
+		frame({Position = UDim2.new(0, 12, 1, -1), Size = UDim2.new(1, -24, 0, 1), BackgroundColor3 = T.ink, BackgroundTransparency = 0.945, Parent = wrap})
+	end
+	if spec.danger then
+		D.onAccent(t, function()
+			t.TextColor3 = D.accentText()
+			if ic then D.iconColor(ic, D.accentText()) end
+		end)
+	end
+	local function drawKey()
+		local bd = D.BIND[spec.id]
+		keyHint.Text = (bd and bd.key ~= "None") and D.keyName(bd.key) or ""
+	end
+	drawKey()
+	scope[#scope + 1] = D.watch("__bind:" .. spec.id, drawKey)
+	D.hoverFade(b, "BackgroundColor3", T.field, T.hover)
+	if spec.desc then D.tip(b, spec.desc) end
+	local armed = false
+	b.MouseButton1Click:Connect(function()
+		D.press(b)
+		D.play("click")
+		if spec.nav then
+			D.selectPage(spec.nav)
+			return
+		end
+		if spec.confirm and S.ui_confirm ~= false and not armed then
+			armed = true
+			t.Text = "Click again to confirm"
+			task.delay(2.5, function()
+				armed = false
+				if t.Parent then t.Text = spec.label end
+			end)
+			return
+		end
+		armed = false
+		t.Text = spec.label
+		D.runAction(spec.id)
+	end)
+	if not spec.nobind and not spec.nav then
+		b.MouseButton2Click:Connect(function() D.openBind(b, spec.id, spec.label, level + 1, true) end)
+	end
+	return {btn = b, wrap = wrap}
+end
+
+local function buttonsRow(card, spec, order, isLast, scope, level)
+	local wrap = frame({Size = UDim2.new(1, 0, 0, M.row + 4), BackgroundTransparency = 1, LayoutOrder = order, Parent = card})
+	local inner = frame({Position = UDim2.fromOffset(8, 5), Size = UDim2.new(1, -16, 1, -10), BackgroundTransparency = 1, Parent = wrap})
+	local n = #spec.buttons
+	for i, bd in ipairs(spec.buttons) do
+		local b = button({Position = UDim2.new((i - 1) / n, i > 1 and 4 or 0, 0, 0), Size = UDim2.new(1 / n, -((n - 1) * 8) / n, 1, 0), BackgroundColor3 = T.field, BackgroundTransparency = 0, Text = bd[2], TextSize = 13, TextColor3 = T.label, Parent = inner})
+		corner(b, M.rField)
+		stroke(b, 0.93)
+		D.hoverFade(b, "BackgroundColor3", T.field, T.hover)
+		if bd[3] then D.tip(b, bd[3]) end
+		b.MouseButton1Click:Connect(function()
+			D.press(b)
+			D.play("click")
+			D.runAction(bd[1])
+		end)
+	end
+	if not isLast then
+		frame({Position = UDim2.new(0, 12, 1, -1), Size = UDim2.new(1, -24, 0, 1), BackgroundColor3 = T.ink, BackgroundTransparency = 0.945, Parent = wrap})
+	end
+	return {wrap = wrap}
+end
+
+local PAL_KEYS = {pal_win = "win", pal_panel = "panel", pal_card = "card", pal_text = "text", pal_sub = "sub"}
+D.PAL_KEYS = PAL_KEYS
+D.RESET_PAGES = {set_theme = true}
+local RESETTABLE = {toggle = true, slider = true, dropdown = true, input = true, color = true, keybind = true}
+
+function D.themeBase()
+	if S.ui_theme ~= "Custom" then
+		local cur = D.themeName(S.ui_theme)
+		if D.PALETTES[cur] then return cur end
+	end
+	local b = D.META and D.META.theme_base
+	if type(b) == "string" and D.PALETTES[b] then return b end
+	local d = D.themeName(D.DEF.ui_theme or "Dark")
+	return D.PALETTES[d] and d or "Dark"
+end
+
+local function paletteHex(key)
+	local p = D.PALETTES[D.themeBase()]
+	local v = p and p[key]
+	if type(v) ~= "string" then return nil end
+	v = string.gsub(v, "#", "")
+	return "#" .. string.upper(string.sub(v, 1, 6)) .. "FF"
+end
+
+function D.defaultOf(k)
+	local key = PAL_KEYS[k]
+	if key then return paletteHex(key) or D.DEF[k] end
+	if k == "ui_accent" and not (D.DEF_OVERRIDES and D.DEF_OVERRIDES.ui_accent) and S.ui_accent_sync ~= false then
+		return paletteHex("accent") or D.DEF[k]
+	end
+	return D.DEF[k]
+end
+
+local function same(a, b)
+	if type(a) == "table" and type(b) == "table" then
+		if #a ~= #b then return false end
+		for i = 1, #a do
+			if a[i] ~= b[i] then return false end
+		end
+		return true
+	end
+	if type(a) == "number" and type(b) == "number" then return math.abs(a - b) < 1e-6 end
+	if type(a) == "string" and type(b) == "string" then return string.upper(a) == string.upper(b) end
+	return a == b
+end
+
+function D.isDefault(k)
+	local d = D.defaultOf(k)
+	if d == nil then return true end
+	return same(S[k], d)
+end
+
+function D.resetFlag(k)
+	local d = D.defaultOf(k)
+	if d == nil then return end
+	set(k, D.clone(d))
+	if PAL_KEYS[k] and S.ui_theme == "Custom" then
+		for pk in pairs(PAL_KEYS) do
+			if not D.isDefault(pk) then return end
+		end
+		local acc = S.ui_accent
+		set("ui_theme", D.themeBase())
+		if S.ui_accent ~= acc then set("ui_accent", acc) end
+	end
+end
+
+function D.resetFlags(list)
+	local rest = {}
+	for _, k in ipairs(list) do
+		if k == "ui_theme" then D.resetFlag(k) else rest[#rest + 1] = k end
+	end
+	for _, k in ipairs(rest) do
+		if not PAL_KEYS[k] then D.resetFlag(k) end
+	end
+	for _, k in ipairs(rest) do
+		if PAL_KEYS[k] and not D.isDefault(k) then D.resetFlag(k) end
+	end
+end
+
+local function rowFlags(spec)
+	local out = {}
+	if RESETTABLE[spec.t] and spec.id and D.DEF[spec.id] ~= nil then out[#out + 1] = spec.id end
+	if spec.color then
+		local cid = spec.colorId or (spec.id .. "_color")
+		if D.DEF[cid] ~= nil then out[#out + 1] = cid end
+	end
+	return out
+end
+
+local function allDefault(list)
+	for _, k in ipairs(list) do
+		if not D.isDefault(k) then return false end
+	end
+	return true
+end
+
+local function watchFlags(scope, list, fn)
+	local set0 = {}
+	for _, k in ipairs(list) do set0[k] = true end
+	scope[#scope + 1] = D.watch("*", function(k)
+		if set0[k] or k == "ui_theme" or k == "ui_accent_sync" then fn() end
+	end)
+end
+
+function D.sectionFlags(sec)
+	local out = {}
+	local function add(rows)
+		for _, r in ipairs(rows or {}) do
+			if not (r.id and string.find(r.id, "{g}", 1, true)) then
+				for _, k in ipairs(rowFlags(r)) do out[#out + 1] = k end
+			end
+			if r.sub and r.sub.cards then
+				for _, c in ipairs(r.sub.cards) do add(c) end
+			end
+		end
+	end
+	add(sec.rows)
+	return out
+end
+
+function D.sectionReset(sct, flags, scope)
+	local ttl = sct:FindFirstChildOfClass("TextLabel")
+	if not ttl or #flags == 0 then return end
+	local rb = button({AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -4, 0.5, 0), Size = UDim2.fromOffset(0, 18), AutomaticSize = Enum.AutomaticSize.X, Text = "Reset", TextSize = 11, TextColor3 = T.dim, FontFace = D.F(D.W.semi), Visible = not allDefault(flags), Parent = ttl})
+	D.tip(rb, "Put everything in this section back to default")
+	rb.MouseEnter:Connect(function() tween(rb, 0.12, {TextColor3 = T.text}) end)
+	rb.MouseLeave:Connect(function() tween(rb, 0.16, {TextColor3 = T.dim}) end)
+	rb.MouseButton1Click:Connect(function()
+		D.play("click")
+		D.resetFlags(flags)
+	end)
+	watchFlags(scope, flags, function()
+		local want = not allDefault(flags)
+		if rb.Visible ~= want then rb.Visible = want end
+	end)
+end
+
+local function rowReset(right, flags, scope)
+	local rb = icon("rotate-ccw", 13, T.dim, {Button = true, Size = UDim2.fromOffset(16, 16), LayoutOrder = -40, Visible = not allDefault(flags), Parent = right})
+	D.tip(rb, "Reset to default")
+	rb.MouseEnter:Connect(function() D.iconColor(rb, T.text) end)
+	rb.MouseLeave:Connect(function() D.iconColor(rb, T.dim) end)
+	rb.MouseButton1Click:Connect(function()
+		D.play("click")
+		D.resetFlags(flags)
+	end)
+	watchFlags(scope, flags, function()
+		local want = not allDefault(flags)
+		if rb.Visible ~= want then rb.Visible = want end
+	end)
+end
+
+function D.buildRow(card, rawSpec, order, isLast, scope, level, ctx)
+	local g = ctx and ctx.g
+	local spec = instance(rawSpec, g)
+	local t = spec.t
+	local out
+	if t == "button" then
+		out = buttonRow(card, spec, order, isLast, scope, level)
+	elseif t == "buttons" then
+		out = buttonsRow(card, spec, order, isLast, scope, level)
+	elseif D.CUSTOM[t] then
+		out = D.CUSTOM[t](card, spec, order, isLast, scope, level, ctx)
+	else
+		local sh = D.rowShell(card, spec, order, isLast)
+		local r, right = sh.btn, sh.right
+		local canBind = t == "toggle" and not spec.nobind
+		local tag
+		if canBind then tag = D.makeBindTag(right, spec.id, D.LABELS[spec.id] or spec.label, scope, 1, level, function() return sh.hovered end) end
+		r.MouseEnter:Connect(function() if tag then tag.refresh() end end)
+		r.MouseLeave:Connect(function() if tag then tag.refresh() end end)
+		if spec.color then D.makeSwatch(right, spec.colorId or (spec.id .. "_color"), scope, 2, level) end
+		if t == "toggle" then
+			D.makeToggle(right, spec.id, scope, 3)
+			r.MouseButton1Click:Connect(function()
+				local v = not S[spec.id]
+				D.play("toggle", v and 1.08 or 0.92)
+				set(spec.id, v)
+				notifyToggle(spec, v, "click")
+			end)
+		elseif t == "slider" then
+			D.makeSlider(right, spec, scope, 3, level > 0)
+		elseif t == "dropdown" then
+			D.makeDropdown(right, spec, scope, 3, level)
+		elseif t == "input" then
+			D.makeInput(right, spec, scope, 3)
+		elseif t == "keybind" then
+			D.makeKeyChip(right, function() return S[spec.id] end, function(k)
+				if D.validKey(spec.id, k) then set(spec.id, k) else D.notify("Keybind", "The menu key must be a keyboard key.", {icon = "triangle-alert", sound = "error"}) end
+			end, scope, 3, spec.id, {noMouse = spec.id == "ui_menukey", noClear = spec.id == "ui_menukey"})
+		elseif t == "info" then
+			D.makeInfo(right, spec, scope, 3)
+		elseif t == "color" then
+			local sw = D.makeSwatch(right, spec.id, scope, 3, level)
+			r.MouseButton1Click:Connect(function() D.openColor(sw, spec.id, level + 1) end)
+		elseif t == "action" then
+			if spec.value then
+				local vt = text({Text = spec.value, Size = UDim2.fromOffset(0, 28), AutomaticSize = Enum.AutomaticSize.X, TextSize = 12, TextColor3 = T.dim, TextTruncate = Enum.TextTruncate.AtEnd, LayoutOrder = 2, Parent = right})
+				new("UISizeConstraint", {MaxSize = Vector2.new(spec.maxw or 120, 28), Parent = vt})
+			end
+			if spec.check then icon("check", 14, D.accentText(), {LayoutOrder = 3, Parent = right}) end
+			if spec.fn then
+				r.MouseButton1Click:Connect(function()
+					D.play("click")
+					spec.fn(r)
+				end)
+			end
+		end
+		if spec.custom then spec.custom(right, scope, level, r, sh) end
+		if spec.extras then
+			for i, x in ipairs(spec.extras) do
+				local xb = icon(x.icon or "circle", 15, T.sub, {Button = true, LayoutOrder = -20 + i, Parent = right})
+				if x.tip then D.tip(xb, x.tip) end
+				xb.MouseEnter:Connect(function() D.iconColor(xb, T.text) end)
+				xb.MouseLeave:Connect(function() D.iconColor(xb, T.sub) end)
+				xb.MouseButton1Click:Connect(function()
+					D.play("click")
+					if x.cb then task.spawn(x.cb) end
+				end)
+			end
+		end
+		if spec.reset ~= false and (spec.reset or (ctx and (ctx.secReset or (ctx.page and D.RESET_PAGES[ctx.page])))) then
+			local flags = rowFlags(spec)
+			if #flags > 0 then rowReset(right, flags, scope) end
+		end
+		if spec.arrow then icon("chevron-right", 16, T.sub, {LayoutOrder = 4, Parent = right}) end
+		if spec.sub then
+			local chev = icon("chevron-right", 16, T.sub, {Button = true, LayoutOrder = 4, Parent = right})
+			local function openIt()
+				D.play("click")
+				D.openSub(chev, spec, level + 1, g)
+			end
+			sh.open = openIt
+			chev.MouseButton1Click:Connect(openIt)
+			chev.MouseEnter:Connect(function() D.iconColor(chev, T.text) end)
+			chev.MouseLeave:Connect(function() D.iconColor(chev, T.sub) end)
+			if t ~= "toggle" then r.MouseButton1Click:Connect(openIt) end
+		end
+		if canBind then
+			r.MouseButton2Click:Connect(function()
+				D.play("click")
+				sh.hovered = true
+				tag.refresh()
+				D.openBind(tag.btn, spec.id, D.LABELS[spec.id] or spec.label, level + 1, false, tag.refresh)
+			end)
+		end
+		out = sh
+	end
+	local locked = D.LOCK_ALL ~= nil and ctx and ctx.page and not string.find(ctx.page, "^set_")
+	if (spec.disabled or spec.enables or locked) and out then
+		local host = out.btn or out.wrap
+		if host then
+			local cover = button({Name = "Disabled", Size = UDim2.fromScale(1, 1), BackgroundColor3 = T.card, BackgroundTransparency = 0.35, ZIndex = 30, Visible = spec.disabled == true or locked == true, Parent = host})
+			local tipText = (locked and D.LOCK_ALL ~= true and tostring(D.LOCK_ALL)) or spec.disabledTip
+			if tipText then D.tip(cover, tipText) end
+			out.cover = cover
+		end
+	end
+	if ctx and ctx.page and (spec.template or spec.id) then
+		local reg = D.ROWREG[ctx.page]
+		if not reg then
+			reg = {}
+			D.ROWREG[ctx.page] = reg
+		end
+		reg[spec.template or spec.id] = out and {inst = out.btn or out.wrap, open = out.open}
+		if spec.buttons and out then
+			for _, bd in ipairs(spec.buttons) do reg[bd[1]] = {inst = out.wrap} end
+		end
+	end
+	return out
+end
+
+function D.buildCard(parent, rows, scope, level, order, ctx)
+	local c = frame({Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = T.card, LayoutOrder = order or 1, Parent = parent})
+	corner(c, M.rCard)
+	stroke(c, 0.955)
+	D.onGlass(c, 0.12)
+	vlist(c, 0)
+	if type(ctx) == "string" then ctx = {g = ctx} end
+	local vis = {}
+	for _, spec in ipairs(rows) do
+		if not spec.hidden then vis[#vis + 1] = spec end
+	end
+	for i, spec in ipairs(vis) do
+		local out = D.buildRow(c, spec, i, i == #vis, scope, level, ctx)
+		local host = out and (out.btn or out.wrap)
+		if spec.depends and host then
+			host.Visible = D.checkConds(spec.depends)
+			for _, d in ipairs(spec.depends) do
+				scope[#scope + 1] = D.watch(d.fn and "*" or d[1], function()
+					local want = D.checkConds(spec.depends)
+					if host.Visible ~= want then host.Visible = want end
+				end)
+			end
+		end
+		if spec.enables and out and out.cover then
+			local cover = out.cover
+			local function upd()
+				local want = spec.disabled == true or D.LOCK_ALL ~= nil or not D.checkConds(spec.enables)
+				if cover.Visible ~= want then cover.Visible = want end
+			end
+			upd()
+			for _, d in ipairs(spec.enables) do scope[#scope + 1] = D.watch(d.fn and "*" or d[1], upd) end
+		end
+	end
+	return c
+end
+
+function D.checkConds(list)
+	for _, d in ipairs(list) do
+		local v = d[1] and S[d[1]]
+		if d.fn then
+			local ok, r = pcall(d.fn, D.FLAG_VIEW or S)
+			if not ok or not r then return false end
+		elseif d[2] == nil then
+			if not v then return false end
+		elseif type(d[2]) == "table" then
+			if not table.find(d[2], v) then return false end
+		elseif v ~= d[2] then
+			return false
+		end
+	end
+	return true
+end
+
+function D.buildTabbox(parent, sec, scope, ctx, order)
+	local tabs = sec.tabs
+	local n = math.max(#tabs, 1)
+	sec.sel = math.clamp(sec.sel or 1, 1, n)
+	local holder = frame({Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = order or 1, Parent = parent})
+	vlist(holder, 6)
+	local bar = frame({Size = UDim2.new(1, 0, 0, 30), BackgroundColor3 = T.card, LayoutOrder = 1, Parent = holder})
+	corner(bar, M.rField + 2)
+	stroke(bar, 0.955)
+	D.onGlass(bar, 0.12)
+	local hl = frame({Position = UDim2.new((sec.sel - 1) / n, 3, 0, 3), Size = UDim2.new(1 / n, -6, 1, -6), BackgroundColor3 = D.accent(), BackgroundTransparency = 0.8, Parent = bar})
+	corner(hl, M.rField)
+	D.onAccent(hl, function(a) hl.BackgroundColor3 = a end)
+	local labels, cards = {}, {}
+	local function draw(animate)
+		for i, b in ipairs(labels) do
+			local act = i == sec.sel
+			b.TextColor3 = act and D.accentText() or T.sub
+			if cards[i] then cards[i].Visible = act end
+		end
+		local pos = UDim2.new((sec.sel - 1) / n, 3, 0, 3)
+		if animate and S.ui_anim ~= false then tween(hl, 0.28, {Position = pos}, Enum.EasingStyle.Back) else hl.Position = pos end
+	end
+	for i, tb in ipairs(tabs) do
+		local b = button({Position = UDim2.fromScale((i - 1) / n, 0), Size = UDim2.fromScale(1 / n, 1), Text = tb.name or ("Tab " .. i), TextSize = 12, FontFace = D.F(D.W.semi), TextColor3 = T.sub, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 2, Parent = bar})
+		labels[i] = b
+		b.MouseEnter:Connect(function() if i ~= sec.sel then tween(b, 0.12, {TextColor3 = T.text}) end end)
+		b.MouseLeave:Connect(function() if i ~= sec.sel then tween(b, 0.16, {TextColor3 = T.sub}) end end)
+		b.MouseButton1Click:Connect(function()
+			if sec.sel == i then return end
+			D.play("click")
+			sec.sel = i
+			draw(true)
+		end)
+		cards[i] = D.buildCard(holder, tb.rows, scope, 0, i + 1, ctx)
+		local reg = ctx and ctx.page and D.ROWREG[ctx.page]
+		if reg then
+			for _, r in ipairs(tb.rows) do
+				if r.id and reg[r.id] then
+					reg[r.id].reveal = function()
+						sec.sel = i
+						draw(false)
+					end
+				end
+			end
+		end
+	end
+	draw(false)
+	return holder
+end
+
+function D.section(col, title, order)
+	local s = frame({Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = order, Parent = col})
+	vlist(s, 0)
+	pad(s, 0, 0, M.gap, 0)
+	if title and title ~= "" then
+		text({Text = string.upper(title), FontFace = D.F(D.W.semi), TextSize = 11, TextColor3 = T.dim, Size = UDim2.new(1, 0, 0, M.title), LayoutOrder = 0, Parent = s})
+	end
+	return s
+end
+
+function D.column(content, i, n)
+	n = n or 2
+	local cf = frame({Position = UDim2.new((i - 1) / n, (i - 1) * 8, 0, 0), Size = UDim2.new(1 / n, -8, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, Parent = content})
+	vlist(cf, 0)
+	return cf
+end
+
+function D.clearCard(c)
+	for _, ch in ipairs(c:GetChildren()) do
+		if ch:IsA("GuiObject") then ch:Destroy() end
+	end
+end
+end
+do
+local new, frame, text, button, icon = D.new, D.frame, D.text, D.button, D.icon
+local corner, stroke, hlist = D.corner, D.stroke, D.hlist
+local tween = D.tween
+
+local P
+local R6 = {"Head", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg"}
+
+local function g(k) return S[S.vis_group .. "_" .. k] end
+local function gc(k)
+	return D.parseColor(S[S.vis_group .. "_" .. k])
+end
+
+local function relationColor(fallbackKey)
+	if S.col_relation then
+		local map = {enemy = "col_enemy", team = "col_team", npc = "col_npc"}
+		return D.parseColor(S[map[S.vis_group]])
+	end
+	return gc(fallbackKey)
+end
+
+local function blocky(wm)
+	local model = new("Model", {Name = "Dummy"})
+	local yellow, blue, green = Color3.fromRGB(245, 215, 110), Color3.fromRGB(116, 155, 214), Color3.fromRGB(198, 222, 124)
+	local function part(name, size, pos, color)
+		return new("Part", {Name = name, Size = size, CFrame = CFrame.new(pos), Color = color, Material = Enum.Material.SmoothPlastic, Anchored = true, CanCollide = false, TopSurface = Enum.SurfaceType.Smooth, BottomSurface = Enum.SurfaceType.Smooth, Parent = model})
+	end
+	local head = part("Head", Vector3.new(2, 1, 1), Vector3.new(0, 1.5, 0), yellow)
+	new("SpecialMesh", {MeshType = Enum.MeshType.Head, Scale = Vector3.new(1.25, 1.25, 1.25), Parent = head})
+	new("Decal", {Texture = "rbxasset://textures/face.png", Face = Enum.NormalId.Front, Parent = head})
+	model.PrimaryPart = part("Torso", Vector3.new(2, 2, 1), Vector3.new(0, 0, 0), blue)
+	part("Left Arm", Vector3.new(1, 2, 1), Vector3.new(-1.5, 0, 0), yellow)
+	part("Right Arm", Vector3.new(1, 2, 1), Vector3.new(1.5, 0, 0), yellow)
+	part("Left Leg", Vector3.new(1, 2, 1), Vector3.new(-0.5, -2, 0), green)
+	part("Right Leg", Vector3.new(1, 2, 1), Vector3.new(0.5, -2, 0), green)
+	model.Parent = wm
+	return model
+end
+
+local function prepModel(model)
+	for _, d in ipairs(model:GetDescendants()) do
+		if d:IsA("BasePart") then
+			d.CanCollide = false
+			d.CastShadow = false
+		elseif d:IsA("Humanoid") then
+			d.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+			d.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
+		elseif d:IsA("Script") or d:IsA("LocalScript") then
+			d:Destroy()
+		end
+	end
+	local hrp = model:FindFirstChild("HumanoidRootPart")
+	if hrp then hrp.Transparency = 1 end
+	local root = hrp or model.PrimaryPart or model:FindFirstChild("Torso")
+	if root then
+		root.Anchored = true
+		model.PrimaryPart = root
+	end
+	model:PivotTo(CFrame.new())
+end
+
+local function bodyBounds(model)
+	local minV, maxV
+	for _, name in ipairs(R6) do
+		local part = model:FindFirstChild(name)
+		if part and part:IsA("BasePart") then
+			local half = name == "Head" and Vector3.new(0.62, 0.62, 0.62) or part.Size / 2
+			for sx = -1, 1, 2 do
+				for sy = -1, 1, 2 do
+					for sz = -1, 1, 2 do
+						local w = part.CFrame * Vector3.new(sx * half.X, sy * half.Y, sz * half.Z)
+						minV = minV and minV:Min(w) or w
+						maxV = maxV and maxV:Max(w) or w
+					end
+				end
+			end
+		end
+	end
+	return minV, maxV
+end
+
+local function buildShell(p)
+	for _, s in ipairs(p.shell or {}) do s:Destroy() end
+	p.shell = {}
+	for _, d in ipairs(p.model:GetDescendants()) do
+		if d:IsA("BasePart") and d.Transparency < 1 then
+			for layer = 1, 2 do
+				local c = d:Clone()
+				for _, ch in ipairs(c:GetChildren()) do
+					if not (ch:IsA("SpecialMesh") or ch:IsA("DataModelMesh")) then ch:Destroy() end
+				end
+				local mesh = c:FindFirstChildWhichIsA("SpecialMesh")
+				if mesh then mesh.TextureId = "" end
+				if c:IsA("MeshPart") then pcall(function() c.TextureID = "" end) end
+				c.Name = "Shell"
+				c.Size = d.Size * (layer == 1 and 1.012 or 1.07)
+				if mesh then mesh.Scale = mesh.Scale * (layer == 1 and 1.012 or 1.07) end
+				c.Transparency = 1
+				c.Anchored = true
+				c.CanCollide = false
+				c.CastShadow = false
+				c.Parent = p.model
+				p.shell[#p.shell + 1] = {part = c, layer = layer}
+			end
+		end
+	end
+end
+
+local function line(parent, z)
+	local f = frame({AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = T.white, Visible = false, ZIndex = z or 2, Parent = parent})
+	return f
+end
+local function placeLine(f, a, b, thick)
+	local d = b - a
+	f.Position = UDim2.fromOffset((a.X + b.X) / 2, (a.Y + b.Y) / 2)
+	f.Size = UDim2.fromOffset(d.Magnitude + (thick > 1 and thick * 0.5 or 0), thick)
+	f.Rotation = math.deg(math.atan2(d.Y, d.X))
+	f.Visible = true
+end
+
+function D.buildPreview(col, scope)
+	local holder = frame({Size = UDim2.new(1, 0, 0, 470), BackgroundTransparency = 1, ClipsDescendants = true, LayoutOrder = 1, Parent = col})
+	local vpf = new("ViewportFrame", {Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Ambient = Color3.fromRGB(150, 150, 158), LightColor = Color3.fromRGB(255, 250, 244), LightDirection = Vector3.new(0.45, -0.7, 0.6), Parent = holder})
+	local wm = new("WorldModel", {Parent = vpf})
+	local cam = new("Camera", {FieldOfView = 30, Parent = vpf})
+	vpf.CurrentCamera = cam
+	local ov = frame({Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 2, Parent = holder})
+	local loading = text({Text = "Loading your avatar...", Size = UDim2.fromScale(1, 1), TextSize = 12, TextColor3 = T.dim, TextXAlignment = Enum.TextXAlignment.Center, Parent = holder})
+
+	local p = {holder = holder, vpf = vpf, wm = wm, cam = cam, ov = ov, t = 0, t2 = 0, yaw = math.rad(-20), shellKey = nil}
+	P = p
+
+	p.fill = frame({BackgroundColor3 = T.white, Visible = false, Parent = ov})
+	corner(p.fill, 0)
+	p.fillGrad = new("UIGradient", {Rotation = 90, Parent = p.fill})
+	p.outline = frame({BackgroundTransparency = 1, Visible = false, Parent = ov})
+	p.outlineCorner = corner(p.outline, 0)
+	p.outlineStroke = new("UIStroke", {Color = T.black, Transparency = 0.4, Thickness = 3, Parent = p.outline})
+	p.full = frame({BackgroundTransparency = 1, Visible = false, ZIndex = 2, Parent = ov})
+	p.fullCorner = corner(p.full, 0)
+	p.fullStroke = new("UIStroke", {Color = T.white, Thickness = 1, Parent = p.full})
+	p.cornerBack, p.corners = {}, {}
+	for i = 1, 8 do p.cornerBack[i] = frame({BackgroundColor3 = T.black, BackgroundTransparency = 0.4, Visible = false, Parent = ov}) end
+	for i = 1, 8 do p.corners[i] = frame({BackgroundColor3 = T.white, Visible = false, ZIndex = 2, Parent = ov}) end
+	p.cube = {}
+	for i = 1, 12 do p.cube[i] = line(ov, 2) end
+	p.bonesBack, p.bones = {}, {}
+	for i = 1, 8 do
+		p.bonesBack[i] = line(ov, 1)
+		p.bones[i] = line(ov, 2)
+	end
+	p.headRing = frame({AnchorPoint = Vector2.new(0.5, 0.5), BackgroundTransparency = 1, Visible = false, ZIndex = 2, Parent = ov})
+	corner(p.headRing, 999)
+	p.headRingStroke = new("UIStroke", {Color = T.white, Thickness = 1, Parent = p.headRing})
+	p.dot = frame({AnchorPoint = Vector2.new(0.5, 0.5), BackgroundTransparency = 1, Visible = false, ZIndex = 3, Parent = ov})
+	corner(p.dot, 999)
+	p.dotStroke = new("UIStroke", {Color = T.white, Thickness = 1.5, Parent = p.dot})
+	p.tracerBack = line(ov, 1)
+	p.tracer = line(ov, 2)
+	p.look = line(ov, 2)
+	p.nameRow = frame({AnchorPoint = Vector2.new(0.5, 1), Size = UDim2.fromOffset(0, 18), AutomaticSize = Enum.AutomaticSize.X, BackgroundTransparency = 1, Visible = false, ZIndex = 3, Parent = ov})
+	hlist(p.nameRow, 5)
+	p.av = new("ImageLabel", {Size = UDim2.fromOffset(16, 16), BackgroundColor3 = T.field, BorderSizePixel = 0, Image = "rbxthumb://type=AvatarHeadShot&id=" .. LP.UserId .. "&w=48&h=48", LayoutOrder = 1, Parent = p.nameRow})
+	corner(p.av, 8)
+	p.tag = frame({Size = UDim2.fromOffset(0, 14), AutomaticSize = Enum.AutomaticSize.X, BackgroundColor3 = Color3.fromRGB(77, 163, 255), LayoutOrder = 2, Parent = p.nameRow})
+	corner(p.tag, 4)
+	D.pad(p.tag, 0, 4, 0, 4)
+	p.tagText = text({Text = "RED", FontFace = D.F(D.W.bold), TextSize = 9, TextColor3 = T.white, Size = UDim2.fromOffset(0, 14), AutomaticSize = Enum.AutomaticSize.X, Parent = p.tag})
+	p.name = text({Size = UDim2.fromOffset(0, 18), AutomaticSize = Enum.AutomaticSize.X, LayoutOrder = 3, Parent = p.nameRow})
+	p.info = text({AnchorPoint = Vector2.new(0.5, 0), Size = UDim2.fromOffset(240, 16), TextXAlignment = Enum.TextXAlignment.Center, TextColor3 = Color3.fromRGB(205, 205, 212), Visible = false, ZIndex = 3, Parent = ov})
+	p.hpBack = frame({BackgroundColor3 = Color3.fromRGB(14, 14, 16), BackgroundTransparency = 0.2, Visible = false, ZIndex = 2, Parent = ov})
+	p.hpFill = frame({BackgroundColor3 = T.white, ZIndex = 3, Parent = p.hpBack})
+	p.hpNum = text({AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(34, 14), TextSize = 11, TextXAlignment = Enum.TextXAlignment.Center, Visible = false, ZIndex = 4, Parent = ov})
+	p.flags = text({Size = UDim2.fromOffset(120, 60), TextSize = 11, TextYAlignment = Enum.TextYAlignment.Top, Visible = false, ZIndex = 3, Parent = ov})
+
+	local bar = frame({AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -6), Size = UDim2.fromOffset(0, 28), AutomaticSize = Enum.AutomaticSize.X, BackgroundColor3 = T.field, ZIndex = 6, Parent = holder})
+	corner(bar, 14)
+	stroke(bar, 0.9)
+	D.pad(bar, 0, 6, 0, 6)
+	hlist(bar, 4)
+	local function barBtn(ic, tipText, order)
+		local b = icon(ic, 14, T.sub, {Button = true, Size = UDim2.fromOffset(24, 24), LayoutOrder = order, ZIndex = 7, Parent = bar})
+		D.tip(b, tipText)
+		b.MouseEnter:Connect(function() D.iconColor(b, T.text) end)
+		b.MouseLeave:Connect(function() D.iconColor(b, T.sub) end)
+		return b
+	end
+	local spinB = barBtn(S.prev_spin and "pause" or "play", "Pause or resume spinning", 1)
+	local resetB = barBtn("rotate-ccw", "Reset the view", 2)
+	text({Text = "drag to rotate", TextSize = 11, TextColor3 = T.dim, Size = UDim2.fromOffset(0, 24), AutomaticSize = Enum.AutomaticSize.X, LayoutOrder = 3, ZIndex = 7, Parent = bar})
+	spinB.MouseButton1Click:Connect(function()
+		D.play("click")
+		D.set("prev_spin", not S.prev_spin)
+		D.setIcon(spinB, S.prev_spin and "pause" or "play")
+	end)
+	resetB.MouseButton1Click:Connect(function()
+		D.play("click")
+		local tau = math.pi * 2
+		p.yaw = p.yaw % tau
+		local from = p.yaw
+		local target = math.rad(-20) % tau
+		if target - from > math.pi then target -= tau elseif from - target > math.pi then target += tau end
+		local t0 = os.clock()
+		p.resetting = true
+		task.spawn(function()
+			while p.resetting and os.clock() - t0 < 0.4 do
+				local a = (os.clock() - t0) / 0.4
+				a = 1 - (1 - a) ^ 3
+				p.yaw = from + (target - from) * a
+				RunService.RenderStepped:Wait()
+			end
+			p.yaw = target
+			p.resetting = false
+		end)
+	end)
+
+	local hit = button({Size = UDim2.new(1, 0, 1, -40), ZIndex = 5, Parent = holder})
+	hit.MouseButton1Down:Connect(function()
+		local startX, startYaw = D.mouse().X, p.yaw
+		p.dragging = true
+		p.resetting = false
+		D.startDrag(function(x)
+			p.yaw = startYaw + (x - startX) * 0.012
+		end, function()
+			p.dragging = false
+		end)
+	end)
+
+	p.page = holder:FindFirstAncestorOfClass("ScrollingFrame")
+	task.spawn(function()
+		local model
+		if not D.avatarTemplate and not D.avatarLoading then
+			D.avatarLoading = true
+			pcall(function()
+				local desc = Players:GetHumanoidDescriptionFromUserId(LP.UserId)
+				D.avatarTemplate = Players:CreateHumanoidModelFromDescription(desc, Enum.HumanoidRigType.R6)
+			end)
+			D.avatarLoading = false
+		end
+		while D.avatarLoading and holder.Parent do task.wait(0.1) end
+		if not holder.Parent then return end
+		if D.avatarTemplate then
+			local ok, c = pcall(function() return D.avatarTemplate:Clone() end)
+			if ok then model = c end
+		end
+		if not model then
+			model = blocky(wm)
+		else
+			model.Parent = wm
+		end
+		prepModel(model)
+		RunService.Heartbeat:Wait()
+		RunService.Heartbeat:Wait()
+		p.model = model
+		local lo, hi = bodyBounds(model)
+		if not lo then
+			local cf, sz = model:GetBoundingBox()
+			lo, hi = cf.Position - sz / 2, cf.Position + sz / 2
+		end
+		local size = hi - lo
+		p.center = (lo + hi) / 2
+		p.size = size
+		local dist = (size.Y * 0.5 + 0.8) / math.tan(math.rad(15)) * 1.55
+		cam.CFrame = CFrame.lookAt(p.center + Vector3.new(0, 0.15, -dist), p.center - Vector3.new(0, 0.25, 0))
+		buildShell(p)
+		loading.Visible = false
+	end)
+	scope[#scope + 1] = function()
+		if P == p then P = nil end
+	end
+end
+
+local CUBE = {{1, 2}, {2, 4}, {4, 3}, {3, 1}, {5, 6}, {6, 8}, {8, 7}, {7, 5}, {1, 5}, {2, 6}, {3, 7}, {4, 8}}
+
+function D.stepPreview(dt, scale)
+	local p = P
+	if not p or not p.model or not p.holder.Parent or (p.page and not p.page.Visible) then return end
+	local W, H = p.holder.AbsoluteSize.X / scale, p.holder.AbsoluteSize.Y / scale
+	if W < 20 or H < 20 then return end
+	p.t2 += dt
+	if S.prev_spin and not p.dragging and not p.resetting then
+		p.yaw += math.rad(S.prev_speed or 35) * dt
+	end
+	p.model:PivotTo(CFrame.new(p.center) * CFrame.Angles(0, p.yaw, 0) * CFrame.new(-p.center))
+
+	local cf = p.cam.CFrame
+	local f = 1 / math.tan(math.rad(p.cam.FieldOfView) / 2)
+	local aspect = W / H
+	local function proj(v)
+		local rel = cf:PointToObjectSpace(v)
+		local z = math.max(-rel.Z, 0.01)
+		return Vector2.new((rel.X / z * f / aspect + 1) / 2 * W, (1 - rel.Y / z * f) / 2 * H)
+	end
+	local minX, minY, maxX, maxY = math.huge, math.huge, -math.huge, -math.huge
+	for _, name in ipairs(R6) do
+		local part = p.model:FindFirstChild(name)
+		if part and part:IsA("BasePart") then
+			local half = name == "Head" and Vector3.new(0.62, 0.62, 0.62) or part.Size / 2
+			for sx = -1, 1, 2 do
+				for sy = -1, 1, 2 do
+					for sz = -1, 1, 2 do
+						local s2 = proj(part.CFrame * Vector3.new(sx * half.X, sy * half.Y, sz * half.Z))
+						minX, minY = math.min(minX, s2.X), math.min(minY, s2.Y)
+						maxX, maxY = math.max(maxX, s2.X), math.max(maxY, s2.Y)
+					end
+				end
+			end
+		end
+	end
+	local cubeCf = CFrame.new(p.center) * CFrame.Angles(0, p.yaw, 0)
+	local bh = p.size / 2
+	local corners3 = {}
+	local i = 0
+	for sx = -1, 1, 2 do
+		for sy = -1, 1, 2 do
+			for sz = -1, 1, 2 do
+				i += 1
+				corners3[i] = proj(cubeCf * Vector3.new(sx * bh.X, sy * bh.Y, sz * bh.Z))
+			end
+		end
+	end
+
+	local on = g("on")
+	local visC = g("visonly") and (D.parseColor(S[S.vis_group .. "_visonly_color"])) or nil
+
+	local mode = g("chams_mode")
+	local fillOn, outOn = on and g("chams_fill"), on and g("chams_outline")
+	local fc, fa = gc("chams_fill_color")
+	local oc, oa = gc("chams_outline_color")
+	local render = g("chams_render")
+	local hpv = 0.62 + 0.38 * math.cos(p.t2 * 0.55)
+	if render == "Rainbow" then
+		fc = Color3.fromHSV((p.t2 * 0.15) % 1, 0.75, 1)
+		oc = fc
+	elseif render == "Pulse" then
+		local k = 0.55 + 0.45 * math.sin(p.t2 * 4)
+		fa *= k
+		oa *= k
+	elseif render == "Health" then
+		fc = Color3.fromRGB(255, 69, 58):Lerp(Color3.fromRGB(76, 217, 100), hpv)
+	end
+	local mat = mode == "Glow" and Enum.Material.Neon or (mode == "Ghost" and Enum.Material.ForceField or Enum.Material.SmoothPlastic)
+	for _, s2 in ipairs(p.shell or {}) do
+		local part = s2.part
+		if s2.layer == 1 then
+			part.Transparency = fillOn and (mode == "Flat" and 1 - math.max(fa, 0.85) or 1 - fa) or 1
+			part.Color = fc
+			part.Material = mat
+		else
+			part.Transparency = outOn and 1 - oa * 0.9 or 1
+			part.Color = oc
+			part.Material = Enum.Material.ForceField
+		end
+	end
+
+	local pd = g("box_pad") or 3
+	local x0, y0, x1, y1 = minX - pd, minY - pd, maxX + pd, maxY + pd
+	local w, h = x1 - x0, y1 - y0
+	local thick = g("box_thick") or 1
+	local boxC, boxA = relationColor("box_color")
+	if visC then boxC = visC end
+	local showBox = on and g("box_on")
+	local style = g("box_style")
+	local outlineOn = g("box_outline")
+	local olC, olA = gc("box_outline_color")
+
+	local rectStyle = style == "Full" or style == "Rounded"
+	p.full.Visible = showBox and rectStyle
+	p.outline.Visible = showBox and rectStyle and outlineOn
+	local rad = style == "Rounded" and math.min(8, w / 5) or 0
+	if p.full.Visible then
+		p.full.Position = UDim2.fromOffset(x0, y0)
+		p.full.Size = UDim2.fromOffset(w, h)
+		p.fullCorner.CornerRadius = UDim.new(0, rad)
+		p.fullStroke.Color = boxC
+		p.fullStroke.Transparency = 1 - boxA
+		p.fullStroke.Thickness = thick
+		p.outline.Position = UDim2.fromOffset(x0 - 1, y0 - 1)
+		p.outline.Size = UDim2.fromOffset(w + 2, h + 2)
+		p.outlineCorner.CornerRadius = UDim.new(0, rad + 1)
+		p.outlineStroke.Thickness = thick + 2
+		p.outlineStroke.Color = olC
+		p.outlineStroke.Transparency = 1 - olA
+	end
+	local cornersOn = showBox and style == "Corner"
+	local cl = math.floor(w * (g("box_corner") or 25) / 100)
+	local cv = math.floor(h * (g("box_corner") or 25) / 100 * 0.75)
+	local specs = {
+		{x0, y0, cl, thick}, {x0, y0, thick, cv},
+		{x1 - cl, y0, cl, thick}, {x1 - thick, y0, thick, cv},
+		{x0, y1 - thick, cl, thick}, {x0, y1 - cv, thick, cv},
+		{x1 - cl, y1 - thick, cl, thick}, {x1 - thick, y1 - cv, thick, cv},
+	}
+	for k, s2 in ipairs(specs) do
+		local c, cb = p.corners[k], p.cornerBack[k]
+		c.Visible = cornersOn
+		cb.Visible = cornersOn and outlineOn
+		if cornersOn then
+			c.Position = UDim2.fromOffset(s2[1], s2[2])
+			c.Size = UDim2.fromOffset(s2[3], s2[4])
+			c.BackgroundColor3 = boxC
+			c.BackgroundTransparency = 1 - boxA
+			cb.Position = UDim2.fromOffset(s2[1] - 1, s2[2] - 1)
+			cb.Size = UDim2.fromOffset(s2[3] + 2, s2[4] + 2)
+			cb.BackgroundColor3 = olC
+			cb.BackgroundTransparency = 1 - olA
+		end
+	end
+	local cubeOn = showBox and style == "3D"
+	for k, e in ipairs(CUBE) do
+		local l = p.cube[k]
+		if cubeOn then
+			placeLine(l, corners3[e[1]], corners3[e[2]], thick)
+			l.BackgroundColor3 = boxC
+			l.BackgroundTransparency = 1 - boxA
+		else
+			l.Visible = false
+		end
+	end
+	p.fill.Visible = showBox and g("box_fill") and style ~= "3D"
+	if p.fill.Visible then
+		local c, a = gc("box_fill_color")
+		p.fill.Position = UDim2.fromOffset(x0, y0)
+		p.fill.Size = UDim2.fromOffset(w, h)
+		p.fill.BackgroundColor3 = c
+		p.fill.BackgroundTransparency = 1 - a
+		local fs = g("box_fillstyle")
+		p.fillGrad.Enabled = fs ~= "Solid"
+		p.fillGrad.Rotation = fs == "Fade Up" and 270 or 90
+		p.fillGrad.Transparency = NumberSequence.new(0, 1)
+		p.fill:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(0, rad)
+	end
+
+	local font = D.textFont(g("font") or "BuilderSans")
+	local tsize = g("textsize") or 13
+	local strokeT = 1
+	local strokeC = T.black
+	if g("textoutline") then
+		local c, a = gc("textoutline_color")
+		strokeC, strokeT = c, 1 - a
+	end
+	local function styleText(lbl, size)
+		if lbl.FontFace ~= font then lbl.FontFace = font end
+		lbl.TextSize = size or tsize
+		lbl.TextStrokeColor3 = strokeC
+		lbl.TextStrokeTransparency = strokeT
+	end
+
+	local nameOn = on and g("name_on")
+	p.nameRow.Visible = nameOn
+	local namePos = g("name_pos")
+	local infoBits = {}
+	if nameOn then
+		local src = g("name_src")
+		local nm = src == "Username" and LP.Name or (src == "Both" and (LP.DisplayName .. " @" .. LP.Name) or LP.DisplayName)
+		local case = g("name_case")
+		if case == "UPPERCASE" then nm = string.upper(nm) elseif case == "lowercase" then nm = string.lower(nm) end
+		local nc, na = relationColor("name_color")
+		p.name.Text = nm
+		p.name.TextColor3 = nc
+		p.name.TextTransparency = 1 - na
+		styleText(p.name)
+		p.av.Visible = g("name_avatar") == true
+		p.tag.Visible = g("name_tag") == true
+		p.tag.BackgroundColor3 = S.vis_group == "enemy" and Color3.fromRGB(255, 69, 80) or (S.vis_group == "team" and Color3.fromRGB(77, 163, 255) or Color3.fromRGB(255, 184, 77))
+		p.tagText.Text = S.vis_group == "enemy" and "RED" or (S.vis_group == "team" and "BLU" or "NPC")
+		if g("name_dist") then infoBits[#infoBits + 1] = g("units") == "Studs" and "43 studs" or "12m" end
+		if g("name_tool") then infoBits[#infoBits + 1] = "Classic Sword" end
+	end
+
+	local hpOn = on and g("hp_on") and not (g("hp_hidefull") and hpv > 0.99)
+	local hpPos = g("hp_pos")
+	local ht = g("hp_thick") or 2
+	local topOffset = (hpOn and hpPos == "Top") and (ht + 5) or 0
+	local bottomOffset = (hpOn and hpPos == "Bottom") and (ht + 5) or 0
+	if nameOn then
+		if namePos == "Bottom" then
+			p.nameRow.AnchorPoint = Vector2.new(0.5, 0)
+			p.nameRow.Position = UDim2.fromOffset((x0 + x1) / 2, y1 + 3 + bottomOffset)
+		else
+			p.nameRow.AnchorPoint = Vector2.new(0.5, 1)
+			p.nameRow.Position = UDim2.fromOffset((x0 + x1) / 2, y0 - 3 - topOffset)
+		end
+	end
+	p.info.Visible = nameOn and #infoBits > 0
+	if p.info.Visible then
+		p.info.Text = table.concat(infoBits, "  ·  ")
+		styleText(p.info, math.max(9, tsize - 2))
+		local below = y1 + 3 + bottomOffset + ((nameOn and namePos == "Bottom") and 18 or 0)
+		p.info.Position = UDim2.fromOffset((x0 + x1) / 2, below)
+	end
+
+	local hc = D.parseColor(S[S.vis_group .. "_hp_color"])
+	if g("hp_grad") then
+		local low = D.parseColor(S[S.vis_group .. "_hp_low"])
+		local mid = D.parseColor(S[S.vis_group .. "_hp_mid"])
+		hc = hpv > 0.5 and mid:Lerp(hc, (hpv - 0.5) * 2) or low:Lerp(mid, hpv * 2)
+	end
+	p.hpBack.Visible = hpOn
+	p.hpNum.Visible = hpOn and g("hp_num")
+	if hpOn then
+		local numPos
+		if hpPos == "Top" or hpPos == "Bottom" then
+			local by = hpPos == "Top" and (y0 - ht - 5) or (y1 + 3)
+			p.hpBack.Position = UDim2.fromOffset(x0, by)
+			p.hpBack.Size = UDim2.fromOffset(w, ht + 2)
+			p.hpFill.AnchorPoint = Vector2.new(0, 0)
+			p.hpFill.Position = UDim2.fromOffset(1, 1)
+			p.hpFill.Size = UDim2.new(hpv, -2, 1, -2)
+			numPos = Vector2.new(x0 + w * hpv, by + ht / 2 + 1)
+		else
+			local bx = hpPos == "Right" and (x1 + 4) or (x0 - ht - 6)
+			p.hpBack.Position = UDim2.fromOffset(bx, y0)
+			p.hpBack.Size = UDim2.fromOffset(ht + 2, h)
+			p.hpFill.AnchorPoint = Vector2.new(0, 1)
+			p.hpFill.Position = UDim2.new(0, 1, 1, -1)
+			p.hpFill.Size = UDim2.new(1, -2, hpv, -2)
+			numPos = Vector2.new(hpPos == "Right" and (bx + ht + 16) or (bx - 16), y0 + h * (1 - hpv))
+		end
+		p.hpFill.BackgroundColor3 = hc
+		if p.hpNum.Visible then
+			p.hpNum.Text = g("hp_numstyle") == "Percent" and (math.floor(hpv * 100 + 0.5) .. "%") or tostring(math.floor(hpv * 100 + 0.5))
+			p.hpNum.TextColor3 = hc
+			styleText(p.hpNum, math.max(9, tsize - 2))
+			p.hpNum.Position = UDim2.fromOffset(numPos.X, numPos.Y)
+		end
+	end
+
+	local m = p.model
+	local function partPos(name, oy)
+		local part = m:FindFirstChild(name)
+		if not part then return nil end
+		return proj(part.CFrame * Vector3.new(0, oy or 0, 0))
+	end
+	local headP = partPos("Head")
+	local skelOn = on and g("skel_on")
+	local sc, sa = gc("skel_color")
+	local sth = g("skel_thick") or 1
+	local chains = {
+		{"Head", 0, "Torso", 0.9},
+		{"Torso", 0.9, "Torso", -0.9},
+		{"Left Arm", 0.8, "Left Arm", -0.9},
+		{"Right Arm", 0.8, "Right Arm", -0.9},
+		{"Left Leg", 0.8, "Left Leg", -0.9},
+		{"Right Leg", 0.8, "Right Leg", -0.9},
+		{"Left Arm", 0.8, "Right Arm", 0.8},
+		{"Left Leg", 0.8, "Right Leg", 0.8},
+	}
+	for k = 1, 8 do
+		local l, lb = p.bones[k], p.bonesBack[k]
+		local c = chains[k]
+		local a2, b2 = partPos(c[1], c[2]), partPos(c[3], c[4])
+		if skelOn and a2 and b2 then
+			placeLine(l, a2, b2, sth)
+			l.BackgroundColor3 = sc
+			l.BackgroundTransparency = 1 - sa
+			if g("skel_outline") then
+				placeLine(lb, a2, b2, sth + 2)
+				lb.BackgroundColor3 = T.black
+				lb.BackgroundTransparency = 0.45
+			else
+				lb.Visible = false
+			end
+		else
+			l.Visible = false
+			lb.Visible = false
+		end
+	end
+	local head = m:FindFirstChild("Head")
+	local headRadius = 8
+	if head and headP then
+		local edge = proj(head.Position + cf.UpVector * head.Size.Y * 0.62)
+		headRadius = math.max(3, math.abs(edge.Y - headP.Y))
+	end
+	p.headRing.Visible = skelOn and g("skel_head") and headP ~= nil
+	if p.headRing.Visible then
+		p.headRing.Position = UDim2.fromOffset(headP.X, headP.Y)
+		p.headRing.Size = UDim2.fromOffset(headRadius * 2, headRadius * 2)
+		p.headRingStroke.Color = sc
+		p.headRingStroke.Transparency = 1 - sa
+		p.headRingStroke.Thickness = sth
+	end
+	p.dot.Visible = on and g("head_on") and headP ~= nil
+	if p.dot.Visible then
+		local dc, da = gc("head_color")
+		local r2 = headRadius * (g("head_size") or 100) / 100 * 0.55
+		p.dot.Position = UDim2.fromOffset(headP.X, headP.Y)
+		p.dot.Size = UDim2.fromOffset(r2 * 2, r2 * 2)
+		p.dot.BackgroundColor3 = dc
+		p.dot.BackgroundTransparency = g("head_fill") and 1 - da or 1
+		p.dotStroke.Color = dc
+		p.dotStroke.Transparency = 1 - da
+	end
+
+	if on and g("tracer_on") then
+		local o = g("tracer_from")
+		local from
+		if o == "Mouse" then
+			local mp = D.mouse() - D.spos(p.holder)
+			from = mp / scale
+		else
+			from = Vector2.new(W / 2, o == "Top" and 0 or (o == "Center" and H / 2 or H))
+		end
+		local to = g("tracer_to")
+		local target = to == "Head" and (headP or Vector2.new((x0 + x1) / 2, y0)) or (to == "Torso" and (partPos("Torso") or Vector2.new((x0 + x1) / 2, (y0 + y1) / 2)) or Vector2.new((x0 + x1) / 2, y1))
+		local tc, ta = gc("tracer_color")
+		local th = g("tracer_thick") or 1
+		placeLine(p.tracer, from, target, th)
+		p.tracer.BackgroundColor3 = tc
+		p.tracer.BackgroundTransparency = 1 - ta
+		if g("tracer_outline") then
+			placeLine(p.tracerBack, from, target, th + 2)
+			p.tracerBack.BackgroundColor3 = T.black
+			p.tracerBack.BackgroundTransparency = 0.45
+		else
+			p.tracerBack.Visible = false
+		end
+	else
+		p.tracer.Visible = false
+		p.tracerBack.Visible = false
+	end
+
+	if on and g("look_on") and head then
+		local look = m:GetPivot().LookVector
+		local a2 = proj(head.Position)
+		local b2 = proj(head.Position + look * (g("look_len") or 6))
+		local lc, la = gc("look_color")
+		placeLine(p.look, a2, b2, g("look_thick") or 1)
+		p.look.BackgroundColor3 = lc
+		p.look.BackgroundTransparency = 1 - la
+	else
+		p.look.Visible = false
+	end
+
+	local fl = {}
+	if on then
+		if g("flag_team") then fl[#fl + 1] = S.vis_group == "enemy" and "Red" or (S.vis_group == "team" and "Blue" or "NPC") end
+		if g("flag_hp") then fl[#fl + 1] = math.floor(hpv * 100 + 0.5) .. "%" end
+		if g("flag_tool") then fl[#fl + 1] = "Sword" end
+		if g("flag_state") then fl[#fl + 1] = "Idle" end
+	end
+	p.flags.Visible = #fl > 0
+	if p.flags.Visible then
+		local fc2, fa2 = gc("flag_color")
+		p.flags.Text = table.concat(fl, "\n")
+		p.flags.TextColor3 = fc2
+		p.flags.TextTransparency = 1 - fa2
+		styleText(p.flags, math.max(9, tsize - 2))
+		local left = g("flag_side") == "Left"
+		local hpShift = (hpOn and hpPos == (left and "Left" or "Right")) and (ht + 6) or 0
+		p.flags.TextXAlignment = left and Enum.TextXAlignment.Right or Enum.TextXAlignment.Left
+		p.flags.Position = UDim2.fromOffset(left and (x0 - 124 - hpShift) or (x1 + 5 + hpShift), y0)
+	end
+end
+end
+do
+local new, frame, text, button, icon = D.new, D.frame, D.text, D.button, D.icon
+local corner, stroke, pad, vlist, hlist = D.corner, D.stroke, D.pad, D.vlist, D.hlist
+local tween, set = D.tween, D.set
+
+D.fpsHistory = {}
+
+D.CUSTOM.graph = function(card, spec, order, isLast, scope)
+	local wrap = frame({Size = UDim2.new(1, 0, 0, 104), BackgroundTransparency = 1, LayoutOrder = order, Parent = card})
+	local area = frame({Position = UDim2.fromOffset(12, 12), Size = UDim2.new(1, -24, 1, -34), BackgroundTransparency = 1, Parent = wrap})
+	for i = 0, 2 do
+		frame({Position = UDim2.new(0, 0, i / 2, 0), Size = UDim2.new(1, 0, 0, 1), BackgroundColor3 = T.ink, BackgroundTransparency = 0.95, Parent = area})
+	end
+	local N = 60
+	local bars = {}
+	for i = 1, N do
+		local b = frame({AnchorPoint = Vector2.new(0, 1), Position = UDim2.new((i - 1) / N, 1, 1, 0), Size = UDim2.new(1 / N, -2, 0, 2), BackgroundColor3 = D.accent(), BackgroundTransparency = 0.35, Parent = area})
+		corner(b, 2)
+		bars[i] = b
+	end
+	local lo = text({Position = UDim2.new(0, 12, 1, -20), Size = UDim2.new(0.5, -12, 0, 16), TextSize = 11, TextColor3 = T.dim, Parent = wrap})
+	local hi = text({AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -12, 1, -20), Size = UDim2.new(0.5, -12, 0, 16), TextSize = 11, TextColor3 = T.dim, TextXAlignment = Enum.TextXAlignment.Right, Parent = wrap})
+	local function draw()
+		local sf = wrap:FindFirstAncestorOfClass("ScrollingFrame")
+		if not D.menuOpen or (sf and not sf.Visible) then return end
+		local hist = D.fpsHistory
+		local maxv = 60
+		for _, v in ipairs(hist) do maxv = math.max(maxv, v) end
+		local minv, sum = math.huge, 0
+		for i = 1, N do
+			local v = hist[#hist - N + i]
+			local b = bars[i]
+			if v then
+				minv = math.min(minv, v)
+				sum += v
+				b.Size = UDim2.new(1 / N, -2, math.clamp(v / maxv, 0.02, 1), 0)
+				b.BackgroundTransparency = 0.25 + 0.5 * (1 - i / N)
+			else
+				b.Size = UDim2.new(1 / N, -2, 0, 2)
+			end
+		end
+		local n = math.min(#hist, N)
+		if n > 0 then
+			lo.Text = string.format("low %d  ·  avg %d", minv, math.floor(sum / n + 0.5))
+			hi.Text = string.format("peak %d fps", maxv)
+		else
+			lo.Text = "collecting..."
+			hi.Text = ""
+		end
+	end
+	draw()
+	scope[#scope + 1] = D.watch("__fps", draw)
+	D.onAccent(area, function(a) for _, b in ipairs(bars) do b.BackgroundColor3 = a end end)
+	return {wrap = wrap}
+end
+
+D.CUSTOM.hero = function(card, spec, order, isLast, scope)
+	local wrap = frame({Size = UDim2.new(1, 0, 0, 92), BackgroundTransparency = 1, LayoutOrder = order, Parent = card})
+	local av = new("ImageLabel", {Position = UDim2.fromOffset(14, 16), Size = UDim2.fromOffset(60, 60), BackgroundColor3 = T.field, BorderSizePixel = 0, Image = D.avatarImage(), Parent = wrap})
+	corner(av, 30)
+	local ring = new("UIStroke", {Color = D.accent(), Thickness = 2, Transparency = 0.2, Parent = av})
+	D.onAccent(av, function(a) ring.Color = a end)
+	local hour = tonumber(os.date("%H")) or 12
+	local greet = hour < 5 and "Up late" or (hour < 12 and "Good morning" or (hour < 18 and "Good afternoon" or "Good evening"))
+	text({Text = greet .. ", " .. D.displayName(), FontFace = D.F(D.W.semi), TextSize = 17, TextColor3 = T.text, Position = UDim2.fromOffset(88, 18), Size = UDim2.new(1, -100, 0, 22), TextTruncate = Enum.TextTruncate.AtEnd, Parent = wrap})
+	local sub = text({TextSize = 12, TextColor3 = T.sub, Position = UDim2.fromOffset(88, 42), Size = UDim2.new(1, -100, 0, 16), TextTruncate = Enum.TextTruncate.AtEnd, Parent = wrap})
+	local chips = frame({Position = UDim2.fromOffset(88, 62), Size = UDim2.new(1, -100, 0, 20), BackgroundTransparency = 1, Parent = wrap})
+	hlist(chips, 6)
+	local function chip(order2)
+		local c = frame({Size = UDim2.fromOffset(0, 20), AutomaticSize = Enum.AutomaticSize.X, BackgroundColor3 = T.field, LayoutOrder = order2, Parent = chips})
+		corner(c, 10)
+		pad(c, 0, 8, 0, 8)
+		local t = text({Size = UDim2.fromOffset(0, 20), AutomaticSize = Enum.AutomaticSize.X, TextSize = 11, TextColor3 = T.label, Parent = c})
+		return t
+	end
+	local c1, c2, c3 = chip(1), chip(2), chip(3)
+	local function draw()
+		sub.Text = "Press " .. D.keyTitle(S.ui_menukey) .. " to open or close the menu"
+		local n = 0
+		for f, b in pairs(D.BIND) do
+			if b.key ~= "None" and not string.find(f, "^__") then n += 1 end
+		end
+		c1.Text = n .. (n == 1 and " keybind" or " keybinds")
+		c2.Text = S.ui_theme .. " theme"
+		c3.Text = S.cfg_current and ("Config: " .. S.cfg_current) or "Autosave"
+	end
+	draw()
+	for _, k in ipairs({"ui_menukey", "ui_theme", "cfg_current", "__binds"}) do
+		scope[#scope + 1] = D.watch(k, draw)
+	end
+	return {wrap = wrap}
+end
+
+D.CUSTOM.groupseg = function(card, spec, order, isLast, scope)
+	local sh = D.rowShell(card, {label = "Editing", desc = "Each group has its own style. Pick one to edit."}, order, isLast)
+	local opts = {}
+	for _, gr in ipairs(D.GROUPS) do opts[#opts + 1] = {gr[1], gr[2]} end
+	local _, draw = D.makeSegment(sh.right, opts, function() return S.vis_group end, function(v)
+		if S.vis_group ~= v then set("vis_group", v) end
+	end, 78, 1)
+	scope[#scope + 1] = D.watch("vis_group", function() draw(true) end)
+	return sh
+end
+
+D.CUSTOM.teamlist = function(card, spec, order, isLast, scope)
+	local holder = frame({Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = order, Parent = card})
+	vlist(holder, 0)
+	local sub = {}
+	local function draw()
+		for _, u in ipairs(sub) do pcall(u) end
+		sub = {}
+		D.clearCard(holder)
+		local teams = TeamsService:GetTeams()
+		if #teams == 0 then
+			local sh = D.rowShell(holder, {label = "No teams in this game", icon = "info"}, 1, true)
+			sh.label.TextColor3 = T.dim
+			return
+		end
+		for i, team in ipairs(teams) do
+			local sh = D.rowShell(holder, {label = team.Name, desc = "Role used when Custom Roles is on."}, i, i == #teams)
+			local dot = frame({Size = UDim2.fromOffset(10, 10), BackgroundColor3 = team.TeamColor.Color, LayoutOrder = 0, Parent = sh.right})
+			corner(dot, 5)
+			local _, segDraw = D.makeSegment(sh.right, {{"Ally", "Ally"}, {"Enemy", "Enemy"}}, function()
+				return (S.tm_roles or {})[team.Name] or "Enemy"
+			end, function(v)
+				local r = table.clone(S.tm_roles or {})
+				r[team.Name] = v
+				set("tm_roles", r)
+			end, 58, 1)
+			sub[#sub + 1] = D.watch("tm_roles", function() segDraw(true) end)
+		end
+	end
+	draw()
+	local c1 = TeamsService.ChildAdded:Connect(function() task.defer(draw) end)
+	local c2 = TeamsService.ChildRemoved:Connect(function() task.defer(draw) end)
+	scope[#scope + 1] = function()
+		c1:Disconnect()
+		c2:Disconnect()
+		for _, u in ipairs(sub) do pcall(u) end
+	end
+	return {wrap = holder}
+end
+
+local selected = LP
+local tags = {}
+D.PLAYER_TAGS = tags
+local friendCache = {}
+function D.isFriend(plr)
+	if plr == LP then return false end
+	local v = friendCache[plr.UserId]
+	if v == nil then
+		friendCache[plr.UserId] = false
+		task.spawn(function()
+			local ok, r = pcall(function() return LP:IsFriendsWith(plr.UserId) end)
+			friendCache[plr.UserId] = ok and r == true
+			if ok and r then D.fire("__tags") end
+		end)
+		return false
+	end
+	return v
+end
+
+local function teamOf(plr)
+	local t = plr:GetAttribute("Team")
+	if t then return tostring(t) end
+	if plr.Team then return plr.Team.Name end
+	return "No team"
+end
+
+D.CUSTOM.playerlist = function(card, spec, order, isLast, scope)
+	local holder = frame({Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = order, Parent = card})
+	vlist(holder, 0)
+	local rows = {}
+	local function draw()
+		D.clearCard(holder)
+		rows = {}
+		local q = string.lower(tostring(S.srv_search or ""))
+		local list = {}
+		for _, plr in ipairs(Players:GetPlayers()) do
+			if q == "" or string.find(string.lower(plr.Name), q, 1, true) or string.find(string.lower(plr.DisplayName), q, 1, true) then
+				list[#list + 1] = plr
+			end
+		end
+		table.sort(list, function(a, b)
+			if a == LP then return true end
+			if b == LP then return false end
+			return string.lower(a.DisplayName) < string.lower(b.DisplayName)
+		end)
+		if #list == 0 then
+			local sh = D.rowShell(holder, {label = "No players match", icon = "search"}, 1, true)
+			sh.label.TextColor3 = T.dim
+			return
+		end
+		for i, plr in ipairs(list) do
+			local sh = D.rowShell(holder, {image = "rbxthumb://type=AvatarHeadShot&id=" .. plr.UserId .. "&w=48&h=48", rich = true, label = plr.DisplayName .. '  <font color="#' .. T.dim:ToHex() .. '">@' .. plr.Name .. "</font>"}, i, i == #list, 44)
+			local t = tags[plr.UserId]
+			if t and t.priority then icon("star", 13, D.accentText(), {LayoutOrder = 1, Parent = sh.right}) end
+			if D.isFriend(plr) then icon("heart", 13, T.sub, {LayoutOrder = 2, Parent = sh.right}) end
+			text({Text = teamOf(plr), Size = UDim2.fromOffset(0, 28), AutomaticSize = Enum.AutomaticSize.X, TextSize = 12, TextColor3 = T.dim, LayoutOrder = 3, Parent = sh.right})
+			rows[plr] = sh
+			if plr == selected then
+				sh.rest = 0.955
+				sh.hov.BackgroundTransparency = 0.955
+			end
+			sh.btn.MouseButton1Click:Connect(function()
+				D.play("click")
+				local old = rows[selected]
+				selected = plr
+				if old then
+					old.rest = 1
+					tween(old.hov, 0.2, {BackgroundTransparency = 1})
+				end
+				sh.rest = 0.955
+				D.fire("__srv_sel")
+			end)
+		end
+	end
+	draw()
+	scope[#scope + 1] = D.watch("srv_search", draw)
+	scope[#scope + 1] = D.watch("__tags", draw)
+	local c1 = Players.PlayerAdded:Connect(function() task.defer(draw) end)
+	local c2 = Players.PlayerRemoving:Connect(function(plr)
+		task.defer(function()
+			if plr == selected then
+				selected = LP
+				D.fire("__srv_sel")
+			end
+			draw()
+		end)
+	end)
+	scope[#scope + 1] = function()
+		c1:Disconnect()
+		c2:Disconnect()
+	end
+	return {wrap = holder}
+end
+
+D.CUSTOM.playercard = function(card, spec, order, isLast, scope, level)
+	local holder = frame({Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = order, Parent = card})
+	vlist(holder, 0)
+	local sub = {}
+	local function draw()
+		for _, u in ipairs(sub) do pcall(u) end
+		sub = {}
+		D.clearCard(holder)
+		local plr = selected
+		if not plr or not plr.Parent then plr = LP end
+		local head = frame({Size = UDim2.new(1, 0, 0, 74), BackgroundTransparency = 1, LayoutOrder = 0, Parent = holder})
+		local av = new("ImageLabel", {Position = UDim2.fromOffset(12, 12), Size = UDim2.fromOffset(50, 50), BackgroundColor3 = T.field, BorderSizePixel = 0, Image = "rbxthumb://type=AvatarHeadShot&id=" .. plr.UserId .. "&w=150&h=150", Parent = head})
+		corner(av, 25)
+		text({Text = plr.DisplayName, FontFace = D.F(D.W.semi), TextSize = 15, TextColor3 = T.text, Position = UDim2.fromOffset(74, 17), Size = UDim2.new(1, -86, 0, 20), TextTruncate = Enum.TextTruncate.AtEnd, Parent = head})
+		text({Text = "@" .. plr.Name .. "  ·  " .. teamOf(plr), TextSize = 12, TextColor3 = T.sub, Position = UDim2.fromOffset(74, 39), Size = UDim2.new(1, -86, 0, 16), TextTruncate = Enum.TextTruncate.AtEnd, Parent = head})
+		frame({Position = UDim2.new(0, 12, 1, -1), Size = UDim2.new(1, -24, 0, 1), BackgroundColor3 = T.ink, BackgroundTransparency = 0.945, Parent = head})
+		local key = plr.UserId
+		tags[key] = tags[key] or {}
+		S.__pl_id = tostring(plr.UserId)
+		S.__pl_age = tostring(plr.AccountAge) .. " days"
+		S.__pl_pri = tags[key].priority == true
+		S.__pl_ign = tags[key].ignore == true
+		local rows = {
+			{t = "info", id = "__pl_id", label = "User ID", desc = "Roblox user ID."},
+			{t = "info", id = "__pl_age", label = "Account Age", desc = "Days since the account was created."},
+			{t = "toggle", id = "__pl_pri", label = "Priority", desc = "Flag this player for your scripts.", nobind = true, icon = "star"},
+			{t = "toggle", id = "__pl_ign", label = "Ignore", desc = "Your scripts will skip this player.", nobind = true, icon = "user-x"},
+			{t = "buttons", id = "__pl_btns", buttons = {{"act_pl_name", "Copy Name", "Copy the username."}, {"act_pl_id", "Copy ID", "Copy the user ID."}}},
+		}
+		for i, r in ipairs(rows) do D.buildRow(holder, r, i, i == #rows, sub, level) end
+		sub[#sub + 1] = D.watch("__pl_pri", function(v)
+			tags[key].priority = v
+			D.fire("__tags")
+		end)
+		sub[#sub + 1] = D.watch("__pl_ign", function(v)
+			tags[key].ignore = v
+			D.fire("__tags")
+		end)
+	end
+	D.ACTIONS = D.ACTIONS or {}
+	D.ACTIONS.act_pl_name = function()
+		if setclipboard then setclipboard(selected.Name) end
+		D.notify("Copied", selected.Name, {icon = "copy", dur = 2})
+	end
+	D.ACTIONS.act_pl_id = function()
+		if setclipboard then setclipboard(tostring(selected.UserId)) end
+		D.notify("Copied", tostring(selected.UserId), {icon = "copy", dur = 2})
+	end
+	draw()
+	scope[#scope + 1] = D.watch("__srv_sel", draw)
+	scope[#scope + 1] = function() for _, u in ipairs(sub) do pcall(u) end end
+	return {wrap = holder}
+end
+
+D.CUSTOM.configlist = function(card, spec, order, isLast, scope, level)
+	local holder = frame({Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = order, Parent = card})
+	vlist(holder, 0)
+	local function draw()
+		D.clearCard(holder)
+		local list = D.listConfigs()
+		if #list == 0 then
+			local sh = D.rowShell(holder, {label = "No configs yet. Create one below.", icon = "folder"}, 1, true)
+			sh.label.TextColor3 = T.dim
+			return
+		end
+		for i, name in ipairs(list) do
+			local data = D.readConfig(name)
+			local when = data and data.__saved and os.date("%d %b, %H:%M", data.__saved) or "saved"
+			local sh = D.rowShell(holder, {icon = S.cfg_current == name and "circle-check" or "folder", label = name, desc = "Click to load. More options on the right."}, i, i == #list)
+			if S.cfg_current == name then
+				D.iconColor(sh.icon, D.accentText())
+				sh.rest = 0.96
+				sh.hov.BackgroundTransparency = 0.96
+			end
+			text({Text = when, Size = UDim2.fromOffset(0, 28), AutomaticSize = Enum.AutomaticSize.X, TextSize = 12, TextColor3 = T.dim, LayoutOrder = 1, Parent = sh.right})
+			local more = icon("ellipsis", 16, T.sub, {Button = true, Size = UDim2.fromOffset(22, 22), LayoutOrder = 2, Parent = sh.right})
+			D.tip(more, "More actions")
+			sh.btn.MouseButton1Click:Connect(function()
+				D.play("click")
+				if D.loadConfig(name) then
+					set("cfg_current", name)
+					D.notify("Config loaded", name, {icon = "folder"})
+				end
+			end)
+			more.MouseButton1Click:Connect(function()
+				D.play("click")
+				D.openPop(level + 1, more, {width = 220, title = name, place = "belowRight"}, function(body, sc, lvl)
+					D.buildCard(body, {
+						{t = "action", icon = "save", label = "Overwrite With Current Setup", fn = function()
+							D.closePops(lvl)
+							if D.saveConfig(name) then
+								set("cfg_current", name)
+								D.notify("Config saved", name, {icon = "save"})
+								D.fire("__configs")
+							end
+						end},
+						{t = "action", icon = "share-2", label = "Copy Share Code", fn = function()
+							D.closePops(lvl)
+							local d2 = D.readConfig(name)
+							if d2 and setclipboard then
+								setclipboard("ARVN1:" .. D.b64encode(HttpService:JSONEncode(d2)))
+								D.notify("Share code copied", name, {icon = "share-2"})
+							end
+						end},
+						{t = "action", icon = "trash-2", label = "Delete", danger = true, fn = function()
+							D.closePops(lvl)
+							if D.deleteConfig(name) then
+								if S.cfg_current == name then set("cfg_current", nil) end
+								D.notify("Config deleted", name, {icon = "trash-2", sound = "error"})
+								D.fire("__configs")
+							end
+						end},
+					}, sc, lvl, 1)
+				end)
+			end)
+		end
+	end
+	draw()
+	scope[#scope + 1] = D.watch("__configs", draw)
+	scope[#scope + 1] = D.watch("cfg_current", draw)
+	return {wrap = holder}
+end
+
+D.CUSTOM.paragraph = function(card, spec, order, isLast, scope)
+	local wrap = frame({Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = order, Parent = card})
+	pad(wrap, 11, 12, 11, 12)
+	vlist(wrap, 4)
+	if spec.label and spec.label ~= "" then
+		text({Text = spec.label, FontFace = D.F(D.W.semi), TextSize = 13, TextColor3 = T.text, Size = UDim2.new(1, 0, 0, 16), TextTruncate = Enum.TextTruncate.AtEnd, LayoutOrder = 1, Parent = wrap})
+	end
+	local body = text({Text = tostring(S[spec.id] or spec.content or ""), TextSize = 12, TextColor3 = T.sub, TextWrapped = true, RichText = true, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, LineHeight = 1.15, LayoutOrder = 2, Parent = wrap})
+	if scope and spec.id then scope[#scope + 1] = D.watch(spec.id, function(v) body.Text = tostring(v or "") end) end
+	if not isLast then
+		frame({AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 12, 1, 0), Size = UDim2.new(1, -24, 0, 1), BackgroundColor3 = T.ink, BackgroundTransparency = 0.945, Parent = wrap})
+	end
+	return {wrap = wrap, body = body}
+end
+
+D.CUSTOM.divider = function(card, spec, order)
+	local wrap = frame({Size = UDim2.new(1, 0, 0, spec.label and spec.label ~= "" and 26 or 9), BackgroundTransparency = 1, LayoutOrder = order, Parent = card})
+	if spec.label and spec.label ~= "" then
+		local t = text({Text = string.upper(spec.label), FontFace = D.F(D.W.semi), TextSize = 10, TextColor3 = T.dim, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(0, 14), AutomaticSize = Enum.AutomaticSize.X, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 2, Parent = wrap})
+		pad(t, 0, 8, 0, 8)
+		t.BackgroundColor3 = T.card
+		t.BackgroundTransparency = 0
+	end
+	frame({AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 12, 0.5, 0), Size = UDim2.new(1, -24, 0, 1), BackgroundColor3 = T.ink, BackgroundTransparency = 0.9, Parent = wrap})
+	return {wrap = wrap}
+end
+
+D.CUSTOM.progress = function(card, spec, order, isLast, scope)
+	local sh = D.rowShell(card, spec, order, isLast)
+	local holder = frame({Size = UDim2.fromOffset(170, 28), BackgroundTransparency = 1, LayoutOrder = 3, Parent = sh.right})
+	local trk = frame({AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 0, 0.5, 0), Size = UDim2.new(1, -46, 0, 6), BackgroundColor3 = T.off, Parent = holder})
+	corner(trk, 3)
+	local fill = frame({Size = UDim2.fromScale(0, 1), BackgroundColor3 = D.accent(), Parent = trk})
+	corner(fill, 3)
+	local pct = text({AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 0), Size = UDim2.fromOffset(40, 28), TextSize = 12, TextColor3 = T.sub, TextXAlignment = Enum.TextXAlignment.Right, Parent = holder})
+	local function draw()
+		local v = math.clamp(tonumber(S[spec.id]) or 0, 0, 1)
+		tween(fill, 0.35, {Size = UDim2.fromScale(v, 1)})
+		pct.Text = math.floor(v * 100 + 0.5) .. "%"
+	end
+	draw()
+	scope[#scope + 1] = D.watch(spec.id, draw)
+	D.onAccent(fill, function(a) fill.BackgroundColor3 = a end)
+	return sh
+end
+end
+do
+local new, frame, text, button, icon = D.new, D.frame, D.text, D.button, D.icon
+local corner, stroke, pad, vlist, hlist = D.corner, D.stroke, D.pad, D.vlist, D.hlist
+local tween, set = D.tween, D.set
+
+local WIN_W, WIN_H, SIDE_W = 880, 640, 188
+D.WIN = {w = WIN_W, h = WIN_H}
+local function readSize()
+	local c = D.CONFIG
+	local mw, mh = c.Resizable ~= false and D.META and D.META.win_w, c.Resizable ~= false and D.META and D.META.win_h
+	WIN_W = math.clamp(math.floor(tonumber(mw or c.Width) or 880), 720, 1600)
+	WIN_H = math.clamp(math.floor(tonumber(mh or c.Height) or 640), 460, 1100)
+	SIDE_W = math.clamp(math.floor(tonumber(c.SidebarWidth) or 188), 150, 280)
+	D.WIN.w, D.WIN.h = WIN_W, WIN_H
+end
+
+local ENTRY, PARENT, GROUP = {}, {}, {}
+local function visibleEntry(e)
+	if e.hidden then return false end
+	if e.depends and D.checkConds and not D.checkConds(e.depends) then return false end
+	return true
+end
+D.visibleEntry = visibleEntry
+local function firstChild(e)
+	for _, c in ipairs(e.children or {}) do
+		if visibleEntry(c) then return c end
+	end
+end
+D.firstChild = firstChild
+local function index(list, parent)
+	local grp
+	for _, e in ipairs(list) do
+		if e.group then grp = e.group end
+		if e.id and visibleEntry(e) then
+			ENTRY[e.id] = e
+			if parent then PARENT[e.id] = parent end
+			GROUP[e.id] = parent and GROUP[parent.id] or grp
+		end
+		if e.children then index(e.children, e) end
+	end
+end
+function D.firstPage()
+	for _, e in ipairs(D.NAV) do
+		if e.id and e.page then return e.id end
+		if e.children and firstChild(e) then return firstChild(e).id end
+	end
+	return "home"
+end
+
+function D.indexNav()
+	table.clear(ENTRY)
+	table.clear(PARENT)
+	table.clear(GROUP)
+	index(D.NAV)
+end
+D.ENTRY, D.PARENT = ENTRY, PARENT
+
+local W = {pages = {}, nav = {}, groups = {}, expanded = {}, scope = {}, scrollMem = {}}
+D.W_STATE = W
+W.current = "home"
+
+function D.avatarImage()
+	return D.customAvatar or ("rbxthumb://type=AvatarHeadShot&id=" .. LP.UserId .. "&w=150&h=150")
+end
+
+function D.logoMark(parent, size, order)
+	local mark = frame({Size = UDim2.fromOffset(size, size), BackgroundColor3 = D.accent(), LayoutOrder = order or 1, Parent = parent})
+	corner(mark, math.floor(size * 0.3))
+	local logo = D.CONFIG.Logo
+	local asset = D.logoAsset
+	if not asset and type(logo) == "string" and (string.find(logo, "^rbxasset") or string.find(logo, "^rbxthumb")) then asset = logo end
+	if not asset and type(logo) == "number" then asset = "rbxassetid://" .. logo end
+	if asset then
+		mark.BackgroundTransparency = 1
+		local img = new("ImageLabel", {Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Image = asset, ScaleType = Enum.ScaleType.Fit, Parent = mark})
+		corner(img, math.floor(size * 0.3))
+		return mark
+	end
+	local letter = type(logo) == "string" and #logo <= 2 and logo or string.upper(string.sub(D.CONFIG.Title or "I", 1, 1))
+	local t = text({Text = letter, FontFace = D.F(D.W.bold), TextSize = math.floor(size * 0.57), TextColor3 = D.onAccentColor(), Size = UDim2.fromScale(1, 1), TextXAlignment = Enum.TextXAlignment.Center, Parent = mark})
+	D.onAccent(mark, function(a)
+		mark.BackgroundColor3 = a
+		t.TextColor3 = D.onAccentColor()
+	end)
+	return mark
+end
+
+function D.displayName()
+	return (S.prof_name and S.prof_name ~= "") and S.prof_name or LP.DisplayName
+end
+
+function D.winScale()
+	return W.scale and W.scale.Scale or D.uiScale()
+end
+
+local function isActive(id)
+	return id == W.current or (PARENT[W.current] ~= nil and PARENT[W.current].id == id)
+end
+
+local function paintNav()
+	for id, u in pairs(W.nav) do
+		local act = isActive(id)
+		local exact = id == W.current
+		tween(u.lbl, 0.18, {TextColor3 = (act or W.hover == id) and T.text or T.label})
+		D.iconColor(u.ic, act and D.accentText() or T.sub)
+		u.lbl.FontFace = D.F(exact and D.W.semi or D.W.med)
+		local hoverBg = W.hover == id and not exact
+		tween(u.btn, 0.16, {BackgroundTransparency = hoverBg and 0.97 or 1})
+	end
+end
+D.paintNav = paintNav
+
+local function follow()
+	W.navFollow = os.clock() + 0.6
+end
+
+local function setExpanded(id, v)
+	W.expanded[id] = v
+	follow()
+	local grp = W.groups[id]
+	if not grp then return end
+	tween(grp.holder, 0.3, {Size = UDim2.new(1, 0, 0, v and grp.full or 0)})
+	tween(grp.chev, 0.26, {Rotation = v and 90 or 0})
+	if v then
+		for i, lbl in ipairs(grp.labels) do
+			lbl.TextTransparency = 1
+			task.delay(D.tweenTime(0.04 * i), function()
+				if lbl.Parent then tween(lbl, 0.26, {TextTransparency = 0}) end
+			end)
+		end
+	end
+end
+
+local function collapseOthers(keep)
+	for id, v in pairs(W.expanded) do
+		if v and id ~= keep then setExpanded(id, false) end
+	end
+end
+
+function D.selectPage(id, instant)
+	local e = ENTRY[id]
+	if not e then return end
+	if e.children then
+		id = firstChild(e) and firstChild(e).id or id
+		e = ENTRY[id]
+	end
+	D.closePops(1)
+	D.hideTip()
+	local par = PARENT[id]
+	collapseOthers(par and par.id or nil)
+	if par and not W.expanded[par.id] then setExpanded(par.id, true) end
+	local changed = W.current ~= id
+	W.current = id
+	UI.Page = id
+	follow()
+	if S.ui_remember ~= false and D.META.page ~= id then
+		D.META.page = id
+		D.writeMeta()
+	end
+	for pid, p in pairs(W.pages) do p.sf.Visible = pid == id end
+	local p = W.pages[id]
+	if p and changed and not instant and S.ui_anim ~= false then
+		W.body.GroupTransparency = 0.9
+		tween(W.body, 0.26, {GroupTransparency = 0})
+		p.content.Position = UDim2.fromOffset(0, 14)
+		tween(p.content, 0.36, {Position = UDim2.fromOffset(0, 0)})
+	elseif p then
+		W.body.GroupTransparency = 0
+		p.content.Position = UDim2.fromOffset(0, 0)
+	end
+	if W.title then
+		W.title.Text = e.name
+		W.subtitle.Text = par and par.name or GROUP[id] or D.CONFIG.Title or ""
+	end
+	paintNav()
+end
+
+local function navButton(e, depth, order, parent)
+	local h = depth == 0 and M.nav or M.navSub
+	local wrap = frame({Size = UDim2.new(1, 0, 0, h), BackgroundTransparency = 1, LayoutOrder = order, Parent = parent})
+	local b = button({Position = UDim2.fromOffset(depth * 14, 0), Size = UDim2.new(1, -depth * 14, 1, 0), BackgroundColor3 = T.ink, BackgroundTransparency = 1, ZIndex = 2, Parent = wrap})
+	corner(b, M.rField + 2)
+	local ic = icon(e.icon, depth == 0 and 16 or 15, T.sub, {AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 12, 0.5, 0), ZIndex = 3, Parent = b})
+	local lbl = text({Text = e.name, Position = UDim2.fromOffset(38, 0), Size = UDim2.new(1, -60, 1, 0), TextSize = depth == 0 and 14 or 13, TextColor3 = T.label, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 3, Parent = b})
+	local u = {btn = b, ic = ic, lbl = lbl, wrap = wrap, depth = depth}
+	W.nav[e.id] = u
+	if e.desc then D.tip(b, e.desc) end
+	if e.locked then icon("lock", 12, T.dim, {AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, e.children and -28 or -10, 0.5, 0), ZIndex = 3, Parent = b}) end
+	if e.children then
+		u.chev = icon("chevron-right", 13, T.dim, {AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -10, 0.5, 0), ZIndex = 3, Parent = b})
+	end
+	b.MouseEnter:Connect(function()
+		D.play("hover")
+		W.hover = e.id
+		paintNav()
+		tween(ic, 0.2, {Position = UDim2.new(0, 14, 0.5, 0)})
+	end)
+	b.MouseLeave:Connect(function()
+		if W.hover == e.id then W.hover = nil end
+		paintNav()
+		tween(ic, 0.22, {Position = UDim2.new(0, 12, 0.5, 0)})
+	end)
+	b.MouseButton1Click:Connect(function()
+		if e.locked then
+			D.play("error")
+			D.notify(e.name, type(e.locked) == "string" and e.locked or "This tab is locked.", {kind = "Warning", dur = 3, compact = true})
+			return
+		end
+		D.play("click")
+		if e.children then
+			if W.expanded[e.id] and PARENT[W.current] and PARENT[W.current].id == e.id then
+				setExpanded(e.id, false)
+			else
+				collapseOthers(e.id)
+				setExpanded(e.id, true)
+				if not (PARENT[W.current] and PARENT[W.current].id == e.id) then D.selectPage(firstChild(e).id) end
+			end
+		else
+			D.selectPage(e.id)
+		end
+	end)
+	return u
+end
+
+local function buildColumn(e, content, ci, ncol, colSpec, scope)
+	local cf = D.column(content, ci, ncol)
+	if colSpec.preview then
+		D.section(cf, "Preview", 0)
+		D.buildPreview(cf, scope)
+	else
+		local ctx = {page = e.id, g = e.grouped and S.vis_group or nil}
+		local ordered = {}
+		for i, sec in ipairs(colSpec) do ordered[#ordered + 1] = {sec = sec, i = i} end
+		table.sort(ordered, function(a, b)
+			local oa, ob = a.sec.order or 0, b.sec.order or 0
+			if oa ~= ob then return oa < ob end
+			return a.i < b.i
+		end)
+		for si, it in ipairs(ordered) do
+			local sec = it.sec
+			if sec.hidden then continue end
+			local sct = D.section(cf, sec.title, si)
+			if sec.reset ~= false and (sec.reset or D.RESET_PAGES[e.id]) then
+				D.sectionReset(sct, D.sectionFlags(sec), scope)
+			end
+			if sec.depends then
+				sct.Visible = D.checkConds(sec.depends)
+				for _, d in ipairs(sec.depends) do
+					scope[#scope + 1] = D.watch(d.fn and "*" or d[1], function()
+						local want = D.checkConds(sec.depends)
+						if sct.Visible ~= want then sct.Visible = want end
+					end)
+				end
+			end
+			local sctx = ctx
+			if sec.reset then sctx = {page = ctx.page, g = ctx.g, secReset = true} end
+			if sec.tabs then
+				D.buildTabbox(sct, sec, scope, sctx, 1)
+			else
+				D.buildCard(sct, sec.rows, scope, 0, 1, sctx)
+			end
+		end
+	end
+	return cf
+end
+
+local function buildPage(e)
+	local sf = new("ScrollingFrame", {Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 3, ScrollBarImageColor3 = T.ink, ScrollBarImageTransparency = 0.8, CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y, ScrollingDirection = Enum.ScrollingDirection.Y, Visible = false, Parent = W.body})
+	sf:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
+		if #D.pops > 0 then D.closePops(1) end
+		D.hideTip()
+	end)
+	local content = frame({Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, Parent = sf})
+	pad(content, 12, 18, 18, 18)
+	local page = {sf = sf, content = content, scope = {}, cols = {}}
+	W.pages[e.id] = page
+	D.ROWREG[e.id] = {}
+	for ci, col in ipairs(e.page) do
+		local cscope = {}
+		page.cols[ci] = {frame = buildColumn(e, content, ci, #e.page, col, cscope), scope = cscope, spec = col}
+	end
+	if e.customPage then
+		local holder = frame({Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, Parent = content})
+		local ok, err = pcall(e.customPage, holder, D.customApi(holder, page.scope))
+		if not ok and D.logError then D.logError(err) end
+	end
+	if e.grouped then
+		page.scope[#page.scope + 1] = D.watch("vis_group", function()
+			local pos = sf.CanvasPosition
+			D.closePops(1)
+			for ci, c in ipairs(page.cols) do
+				if not c.spec.preview then
+					for _, u in ipairs(c.scope) do pcall(u) end
+					c.frame:Destroy()
+					c.scope = {}
+					c.frame = buildColumn(e, content, ci, #e.page, c.spec, c.scope)
+				end
+			end
+			sf.CanvasPosition = pos
+			if S.ui_anim ~= false then
+				W.body.GroupTransparency = 0.6
+				tween(W.body, 0.24, {GroupTransparency = 0})
+			end
+		end)
+	end
+	if W.scrollMem[e.id] then
+		task.defer(function()
+			if sf.Parent then sf.CanvasPosition = W.scrollMem[e.id] end
+		end)
+	end
+end
+
+function D.destroyWindow()
+	D.closePops(1)
+	for _, u in ipairs(W.scope) do pcall(u) end
+	W.scope = {}
+	for id, p in pairs(W.pages) do
+		W.scrollMem[id] = p.sf.CanvasPosition
+		for _, u in ipairs(p.scope) do pcall(u) end
+		for _, c in ipairs(p.cols or {}) do
+			for _, u in ipairs(c.scope) do pcall(u) end
+		end
+	end
+	W.pages, W.nav, W.groups = {}, {}, {}
+	W.hover = nil
+	if W.win then W.win:Destroy() end
+	W.win = nil
+	W.scale = nil
+end
+
+function D.clampWin(x, y)
+	local vp = D.viewport()
+	local s = D.uiScale()
+	local w = WIN_W * s
+	x = math.clamp(x, 8 - w * 0.6, vp.X - w * 0.4)
+	y = math.clamp(y, 0, vp.Y - 60)
+	return x, y
+end
+
+function D.centerWin()
+	local vp = D.viewport()
+	local s = D.uiScale()
+	return math.floor(vp.X / 2 - WIN_W * s / 2), math.floor(vp.Y / 2 - WIN_H * s / 2)
+end
+
+local function beginDrag()
+	if not W.win then return end
+	D.closePops(1)
+	local m = D.mouse()
+	local off = Vector2.new(m.X, m.Y) - (W.pos or W.target)
+	D.startDrag(function(x, y)
+		local nx, ny = D.clampWin(x - off.X, y - off.Y)
+		W.target = Vector2.new(nx, ny)
+	end, function()
+		if W.target then
+			D.META.win_x, D.META.win_y = math.floor(W.target.X), math.floor(W.target.Y)
+			D.writeMeta()
+		end
+	end)
+end
+
+local function headerButton(parent, iconName, tipText, order)
+	local b = button({Size = UDim2.fromOffset(32, 32), BackgroundColor3 = T.field, BackgroundTransparency = 0, LayoutOrder = order, ZIndex = 4, Parent = parent})
+	corner(b, M.rField + 2)
+	stroke(b, 0.92)
+	local ic = icon(iconName, 15, T.sub, {AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), ZIndex = 5, Parent = b})
+	D.tip(b, tipText)
+	b.MouseEnter:Connect(function()
+		tween(b, 0.14, {BackgroundColor3 = T.hover})
+		D.iconColor(ic, T.text)
+		D.play("hover")
+	end)
+	b.MouseLeave:Connect(function()
+		tween(b, 0.2, {BackgroundColor3 = T.field})
+		D.iconColor(ic, T.sub)
+	end)
+	return b, ic
+end
+
+function D.applyBackground()
+	local W2 = W
+	if not W2.bg then return end
+	local on = S.bg_on and D.bgAsset ~= nil
+	W2.bg.Visible = on
+	W2.bgDark.Visible = on
+	if not on then return end
+	W2.bg.Image = D.bgAsset
+	local fit = S.bg_fit
+	W2.bg.ScaleType = fit == "Fit" and Enum.ScaleType.Fit or (fit == "Stretch" and Enum.ScaleType.Stretch or (fit == "Tile" and Enum.ScaleType.Tile or Enum.ScaleType.Crop))
+	W2.bg.TileSize = UDim2.fromOffset(256, 256)
+	W2.bg.ImageTransparency = 1 - (S.bg_opacity or 45) / 100
+	W2.bgDark.BackgroundTransparency = 1 - (S.bg_dark or 45) / 100
+end
+
+function D.buildWindow()
+	readSize()
+	D.destroyWindow()
+	D.applyTheme()
+	D.applyMetrics()
+	local x, y = D.META.win_x, D.META.win_y
+	if W.pos then x, y = W.target.X, W.target.Y end
+	local cx, cy = D.centerWin()
+	x, y = D.clampWin(x or cx, y or cy)
+	local win = new("CanvasGroup", {Position = UDim2.fromOffset(x, y), Size = UDim2.fromOffset(WIN_W, W.minimized and 66 or WIN_H), BackgroundColor3 = T.win, GroupTransparency = D.menuOpen and 0 or 1, Visible = D.menuOpen == true, Parent = D.L.win})
+	W.win = win
+	W.target = Vector2.new(x, y)
+	W.pos = Vector2.new(x, y)
+	corner(win, M.rWin)
+	stroke(win, 0.74, true)
+	D.onGlass(win, 0.55)
+	D.cardGrad(win)
+	D.halo(win)
+	W.scale = new("UIScale", {Scale = D.uiScale(), Parent = win})
+	D.blocker(win, 0)
+	W.bg = new("ImageLabel", {Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ImageTransparency = 1, Visible = false, ZIndex = 1, Parent = win})
+	W.bgDark = frame({Size = UDim2.fromScale(1, 1), BackgroundColor3 = T.black, BackgroundTransparency = 1, Visible = false, ZIndex = 1, Parent = win})
+	D.applyBackground()
+
+	local sideDrag = frame({Size = UDim2.fromOffset(SIDE_W, 62), BackgroundTransparency = 1, ZIndex = 1, Parent = win})
+	sideDrag.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseButton1 then beginDrag() end
+	end)
+	local logo = frame({Position = UDim2.fromOffset(22, 18), Size = UDim2.fromOffset(0, 28), AutomaticSize = Enum.AutomaticSize.X, BackgroundTransparency = 1, ZIndex = 2, Parent = win})
+	hlist(logo, 9)
+	if D.CONFIG.Logo then
+		local mark = D.logoMark(logo, 28, 1)
+		mark.ZIndex = 2
+	end
+	local names = frame({Size = UDim2.fromOffset(0, 28), AutomaticSize = Enum.AutomaticSize.X, BackgroundTransparency = 1, LayoutOrder = 2, ZIndex = 2, Parent = logo})
+	local sub = D.CONFIG.Subtitle
+	text({Text = D.CONFIG.Title or "arvn", FontFace = D.F(D.W.bold), TextSize = sub and 17 or 18, TextColor3 = T.text, Size = UDim2.fromOffset(0, sub and 16 or 28), AutomaticSize = Enum.AutomaticSize.X, ZIndex = 2, Parent = names})
+	if sub then
+		text({Text = sub, TextSize = 11, TextColor3 = T.dim, Position = UDim2.fromOffset(0, 16), Size = UDim2.fromOffset(0, 12), AutomaticSize = Enum.AutomaticSize.X, ZIndex = 2, Parent = names})
+	end
+
+	local nav = new("ScrollingFrame", {Position = UDim2.fromOffset(0, 60), Size = UDim2.new(0, SIDE_W, 1, -60 - 110), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 0, CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y, ScrollingDirection = Enum.ScrollingDirection.Y, ZIndex = 2, Parent = win})
+	nav.InputChanged:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.MouseWheel then W.navFollow = nil end
+	end)
+	local pill = frame({Size = UDim2.fromOffset(SIDE_W - 20, M.nav), Position = UDim2.fromOffset(10, 0), BackgroundColor3 = T.ink, BackgroundTransparency = 0.935, ZIndex = 1, Parent = nav})
+	corner(pill, M.rField + 2)
+	local pillBar = frame({AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 0, 0.5, 0), Size = UDim2.fromOffset(3, 14), BackgroundColor3 = D.accent(), ZIndex = 1, Parent = pill})
+	corner(pillBar, 2)
+	D.onAccent(pillBar, function(a) pillBar.BackgroundColor3 = a end)
+	W.pill = pill
+	W.pillPos, W.pillSize = nil, nil
+	W.navScroll = nav
+	local list = frame({Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 2, Parent = nav})
+	pad(list, 0, 10, 10, 10)
+	vlist(list, 2)
+	W.navList = list
+	local order = 0
+	for _, e in ipairs(D.NAV) do
+		order += 1
+		if e.group then
+			local gl = text({Text = string.upper(e.group), FontFace = D.F(D.W.semi), TextSize = 11, TextColor3 = T.dim, Size = UDim2.new(1, 0, 0, 30), TextYAlignment = Enum.TextYAlignment.Bottom, LayoutOrder = order, ZIndex = 2, Parent = list})
+			pad(gl, 0, 0, 8, 12)
+		else
+			local u = navButton(e, 0, order, list)
+			if e.children then
+				order += 1
+				local holder = frame({Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1, ClipsDescendants = true, LayoutOrder = order, ZIndex = 2, Parent = list})
+				vlist(holder, 2)
+				pad(holder, 2, 0, 0, 0)
+				local labels = {}
+				local n = 0
+				for ci, c in ipairs(e.children) do
+					if visibleEntry(c) then
+						n += 1
+						local cu = navButton(c, 1, ci, holder)
+						labels[#labels + 1] = cu.lbl
+					end
+				end
+				local full = n * M.navSub + (n - 1) * 2 + 2
+				W.groups[e.id] = {holder = holder, full = full, chev = u.chev, labels = labels}
+				holder.Size = UDim2.new(1, 0, 0, W.expanded[e.id] and full or 0)
+				u.chev.Rotation = W.expanded[e.id] and 90 or 0
+			end
+		end
+	end
+
+	local profSep = frame({Position = UDim2.new(0, 14, 1, -82), Size = UDim2.new(0, SIDE_W - 28, 0, 1), BackgroundColor3 = T.ink, BackgroundTransparency = 0.93, ZIndex = 2, Visible = not W.minimized, Parent = win})
+	D.makeCredit(win)
+	local prof = button({Position = UDim2.new(0, 8, 1, -74), Size = UDim2.fromOffset(SIDE_W - 16, 62), BackgroundColor3 = T.ink, BackgroundTransparency = 1, ZIndex = 2, Visible = not W.minimized, Parent = win})
+	W.bottom = {profSep, prof}
+	corner(prof, M.rCard)
+	local av = new("ImageLabel", {Position = UDim2.fromOffset(8, 12), Size = UDim2.fromOffset(38, 38), BackgroundColor3 = T.field, BorderSizePixel = 0, Image = D.avatarImage(), ZIndex = 3, Parent = prof})
+	corner(av, 19)
+	local online = frame({AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, 1, 1, 1), Size = UDim2.fromOffset(11, 11), BackgroundColor3 = Color3.fromRGB(62, 207, 112), ZIndex = 4, Parent = av})
+	corner(online, 6)
+	new("UIStroke", {Color = T.win, Thickness = 2, Parent = online})
+	local pName = text({Text = D.displayName(), FontFace = D.F(D.W.semi), TextSize = 13, TextColor3 = T.text, Position = UDim2.fromOffset(56, 14), Size = UDim2.new(1, -82, 0, 18), TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 3, Parent = prof})
+	local pTag = text({Text = (S.prof_tag and S.prof_tag ~= "") and S.prof_tag or ("@" .. LP.Name), TextSize = 12, TextColor3 = T.sub, Position = UDim2.fromOffset(56, 32), Size = UDim2.new(1, -82, 0, 16), TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 3, Parent = prof})
+	W.scope[#W.scope + 1] = D.watch("prof_name", function() pName.Text = D.displayName() end)
+	W.scope[#W.scope + 1] = D.watch("prof_tag", function(v) pTag.Text = (v and v ~= "") and v or ("@" .. LP.Name) end)
+	local pchev = icon("chevron-right", 14, T.sub, {AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -10, 0.5, 0), ZIndex = 3, Parent = prof})
+	prof.MouseEnter:Connect(function()
+		tween(prof, 0.14, {BackgroundTransparency = 0.965})
+		tween(pchev, 0.2, {Position = UDim2.new(1, -7, 0.5, 0)})
+		D.play("hover")
+	end)
+	prof.MouseLeave:Connect(function()
+		tween(prof, 0.2, {BackgroundTransparency = 1})
+		tween(pchev, 0.22, {Position = UDim2.new(1, -10, 0.5, 0)})
+	end)
+	prof.MouseButton1Click:Connect(function()
+		D.play("click")
+		D.openProfile(prof)
+	end)
+
+	local panel = frame({Position = UDim2.fromOffset(SIDE_W, 0), Size = UDim2.new(1, -SIDE_W, 1, 0), BackgroundColor3 = T.panel, ZIndex = 2, Parent = win})
+	corner(panel, M.rWin)
+	stroke(panel, 0.8, true)
+	D.onGlass(panel, 0.38)
+	if not T.light then
+		local gl = frame({Size = UDim2.new(1, 0, 0, 160), BackgroundColor3 = T.white, ZIndex = 2, Parent = panel})
+		corner(gl, M.rWin)
+		new("UIGradient", {Rotation = 90, Transparency = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.962), NumberSequenceKeypoint.new(1, 1)}), Parent = gl})
+	end
+	local header = frame({Size = UDim2.new(1, 0, 0, 64), BackgroundTransparency = 1, ZIndex = 3, Parent = panel})
+	local tools = frame({AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -18, 0, 16), Size = UDim2.fromOffset(0, 32), AutomaticSize = Enum.AutomaticSize.X, BackgroundTransparency = 1, ZIndex = 4, Parent = panel})
+	hlist(tools, 6, Enum.HorizontalAlignment.Right)
+	W.tools = tools
+	header.InputBegan:Connect(function(i)
+		if i.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
+		local m = D.mouse()
+		if W.search and D.inRect(W.search, m.X, m.Y) then return end
+		if D.inRect(tools, m.X, m.Y) then return end
+		beginDrag()
+	end)
+	if D.CONFIG.Search ~= false then D.buildSearch(panel) end
+	W.title = text({Position = UDim2.fromOffset(18 + 300 + 14, 14), Size = UDim2.fromOffset(180, 18), FontFace = D.F(D.W.semi), TextSize = 14, TextColor3 = T.text, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 4, Parent = panel})
+	W.subtitle = text({Position = UDim2.fromOffset(18 + 300 + 14, 32), Size = UDim2.fromOffset(180, 16), TextSize = 11, TextColor3 = T.dim, TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 4, Parent = panel})
+
+	local bell = headerButton(tools, "bell", "Notification center", 1)
+	local dot = frame({AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1, -8, 0, 8), Size = UDim2.fromOffset(8, 8), BackgroundColor3 = D.accent(), Visible = false, ZIndex = 6, Parent = bell})
+	corner(dot, 4)
+	new("UIStroke", {Color = T.field, Thickness = 2, Parent = dot})
+	D.onAccent(dot, function(a) dot.BackgroundColor3 = a end)
+	local function drawDot() dot.Visible = (D.unread or 0) > 0 end
+	drawDot()
+	W.scope[#W.scope + 1] = D.watch("__history", drawDot)
+	bell.MouseButton1Click:Connect(function()
+		D.play("click")
+		D.unread = 0
+		drawDot()
+		D.openNotificationCenter(bell)
+	end)
+	local kbB = headerButton(tools, "keyboard", "All keybinds", 2)
+	kbB.MouseButton1Click:Connect(function()
+		D.play("click")
+		D.openKeybindManager(kbB, 1, "belowRight")
+	end)
+	local thB = headerButton(tools, "palette", "Quick theme", 3)
+	thB.MouseButton1Click:Connect(function()
+		D.play("click")
+		D.openThemeQuick(thB)
+	end)
+	if D.CONFIG.Resizable ~= false then
+		local grip = button({AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -3, 1, -3), Size = UDim2.fromOffset(16, 16), ZIndex = 30, Visible = not W.minimized, Parent = win})
+		W.grip = grip
+		local gi = icon("move-diagonal", 12, T.dim, {AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Rotation = 0, ZIndex = 31, Parent = grip})
+		gi.ImageTransparency = 0.5
+		grip.MouseEnter:Connect(function() tween(gi, 0.15, {ImageTransparency = 0}) end)
+		grip.MouseLeave:Connect(function() tween(gi, 0.2, {ImageTransparency = 0.5}) end)
+		grip.InputBegan:Connect(function(i)
+			if i.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
+			D.startDrag(function(x, y)
+				local p = D.spos(win)
+				local sc = math.max(D.winScale(), 0.01)
+				WIN_W = math.clamp(math.floor((x - p.X) / sc), 720, 1600)
+				WIN_H = math.clamp(math.floor((y - p.Y) / sc), 460, 1100)
+				D.WIN.w, D.WIN.h = WIN_W, WIN_H
+				win.Size = UDim2.fromOffset(WIN_W, WIN_H)
+			end, function()
+				D.META.win_w, D.META.win_h = WIN_W, WIN_H
+				D.writeMeta()
+			end, grip)
+		end)
+	end
+	local minB = headerButton(tools, W.minimized and "maximize-2" or "minus", W.minimized and "Restore" or "Minimize", 4)
+	minB.MouseButton1Click:Connect(function()
+		D.play("click")
+		D.setMinimized(not W.minimized)
+	end)
+	W.minB = minB
+	local closeB = headerButton(tools, "x", "Close menu", 5)
+	closeB.MouseButton1Click:Connect(function()
+		D.play("click")
+		D.setMenu(false)
+	end)
+
+	frame({Position = UDim2.fromOffset(18, 64), Size = UDim2.new(1, -36, 0, 1), BackgroundColor3 = T.ink, BackgroundTransparency = 0.935, ZIndex = 3, Parent = panel})
+	local body = new("CanvasGroup", {Position = UDim2.fromOffset(0, 65), Size = UDim2.new(1, 0, 1, -72), BackgroundTransparency = 1, ZIndex = 3, Parent = panel})
+	W.body = body
+
+	for _, e in pairs(ENTRY) do
+		if e.page then buildPage(e) end
+	end
+	D.selectPage(W.current, true)
+end
+
+local MIN_H = 66
+function D.setMinimized(v)
+	v = v and true or false
+	W.minimized = v
+	local win = W.win
+	if not win then return end
+	D.closePops(1)
+	D.hideTip()
+	tween(win, 0.32, {Size = UDim2.fromOffset(WIN_W, v and MIN_H or WIN_H)}, Enum.EasingStyle.Quint)
+	if W.grip then W.grip.Visible = not v end
+	for _, o in ipairs(W.bottom or {}) do
+		if o.Parent then o.Visible = not v end
+	end
+	if W.credit then W.credit.Visible = not v end
+	if W.minB then
+		for _, c in ipairs(W.minB:GetChildren()) do
+			if c:IsA("ImageLabel") then D.setIcon(c, v and "maximize-2" or "minus") end
+		end
+	end
+	D.applyBackdrop()
+	D.fire("__minimized")
+end
+
+local CREDIT_TEXT = "made with arvn lib"
+function D.makeCredit(win)
+	local credit = button({Name = "Credit", Position = UDim2.new(0, 14, 1, -104), Size = UDim2.new(0, SIDE_W - 28, 0, 16), Text = CREDIT_TEXT, TextSize = 11, FontFace = D.F(D.W.med), TextColor3 = T.dim, TextTransparency = 0.25, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 40, Visible = not W.minimized, Parent = win})
+	D.tip(credit, "arvn lib by koteqjjjj. Click to copy the GitHub link.")
+	credit.MouseEnter:Connect(function() tween(credit, 0.15, {TextTransparency = 0, TextColor3 = T.sub}) end)
+	credit.MouseLeave:Connect(function() tween(credit, 0.2, {TextTransparency = 0.25, TextColor3 = T.dim}) end)
+	credit.MouseButton1Click:Connect(function()
+		D.play("click")
+		D.runAction("act_lib_link")
+	end)
+	W.credit = credit
+	return credit
+end
+
+local creditClock = 0
+local function creditOk(c, win)
+	return c and c.Parent == win and c.Visible and c.Text == CREDIT_TEXT and c.TextTransparency < 0.6 and c.TextSize >= 9
+		and c.AbsoluteSize.X >= 60 and c.AbsoluteSize.Y >= 10 and c.ZIndex >= 40
+end
+
+function D.stepWindow(dt)
+	creditClock += dt
+	if creditClock > 1 and W.win and W.win.Parent then
+		creditClock = 0
+		if not W.minimized and not creditOk(W.credit, W.win) then
+			pcall(function() if W.credit then W.credit:Destroy() end end)
+			D.makeCredit(W.win)
+		end
+	end
+	local win = W.win
+	if not win or not win.Visible then return end
+	local k = 1 - math.exp(-dt * 26)
+	if W.target then
+		W.pos = W.pos or W.target
+		W.pos = W.pos:Lerp(W.target, k)
+		if (W.pos - W.target).Magnitude < 0.25 then W.pos = W.target end
+	end
+	local base = D.uiScale()
+	local cur = W.scale and W.scale.Scale or base
+	local off = Vector2.new(WIN_W, WIN_H) * (base - cur) * 0.5
+	local rp = (W.pos or Vector2.zero) + off
+	win.Position = UDim2.fromOffset(math.floor(rp.X + 0.5), math.floor(rp.Y + 0.5))
+
+	local par = PARENT[W.current]
+	local u = (par and not W.expanded[par.id]) and W.nav[par.id] or W.nav[W.current]
+	if u and W.pill and W.navList then
+		local sc = math.max(cur, 0.01) * (D.RES.factor or 1)
+		local rel = (u.btn.AbsolutePosition - W.navList.AbsolutePosition) / sc
+		local size = u.btn.AbsoluteSize / sc
+		local target = Vector2.new(10 + u.depth * 14, rel.Y)
+		local kp = 1 - math.exp(-dt * 22)
+		W.pillPos = W.pillPos and W.pillPos:Lerp(target, kp) or target
+		W.pillSize = W.pillSize and W.pillSize:Lerp(size, kp) or size
+		if (W.pillPos - target).Magnitude < 0.3 then W.pillPos = target end
+		if (W.pillSize - size).Magnitude < 0.3 then W.pillSize = size end
+		W.pill.Position = UDim2.fromOffset(math.floor(W.pillPos.X + 0.5), math.floor(W.pillPos.Y + 0.5))
+		W.pill.Size = UDim2.fromOffset(math.floor(W.pillSize.X + 0.5), math.floor(W.pillSize.Y + 0.5))
+		local nav = W.navScroll
+		if nav and W.navFollow and os.clock() < W.navFollow and not D.dragging() then
+			local viewH = nav.AbsoluteSize.Y / sc
+			local cp = nav.CanvasPosition.Y
+			local want = cp
+			if target.Y - 8 < cp then
+				want = math.max(0, target.Y - 8)
+			elseif target.Y + size.Y + 8 > cp + viewH then
+				want = target.Y + size.Y + 8 - viewH
+			end
+			if math.abs(want - cp) > 0.5 then nav.CanvasPosition = Vector2.new(0, cp + (want - cp) * k) end
+		end
+	end
+end
+
+function D.setWinScale(animate)
+	if not W.win or not W.scale then return end
+	local old = W.scale.Scale
+	local new2 = D.uiScale()
+	local p = W.pos or W.target
+	local center = p + Vector2.new(WIN_W, WIN_H) * old / 2
+	local np = center - Vector2.new(WIN_W, WIN_H) * new2 / 2
+	local nx, ny = D.clampWin(np.X, np.Y)
+	W.target = Vector2.new(nx, ny)
+	W.pos = W.target
+	if animate then
+		W.scale.Scale = old
+		tween(W.scale, 0.32, {Scale = new2})
+	else
+		W.scale.Scale = new2
+	end
+end
+
+function D.openProfile(anchor)
+	D.openPop(1, anchor, {width = 290, place = "side", gap = 8, key = "profile"}, function(body, scope, lvl)
+		local head = frame({Size = UDim2.new(1, 0, 0, 60), BackgroundTransparency = 1, LayoutOrder = 1, Parent = body})
+		local av = new("ImageLabel", {Position = UDim2.fromOffset(2, 6), Size = UDim2.fromOffset(48, 48), BackgroundColor3 = T.field, BorderSizePixel = 0, Image = D.avatarImage(), Parent = head})
+		corner(av, 24)
+		local ring = new("UIStroke", {Color = D.accent(), Thickness = 2, Transparency = 0.2, Parent = av})
+		D.onAccent(av, function(a) ring.Color = a end)
+		text({Text = D.displayName(), FontFace = D.F(D.W.semi), TextSize = 15, TextColor3 = T.text, Position = UDim2.fromOffset(62, 12), Size = UDim2.new(1, -66, 0, 18), TextTruncate = Enum.TextTruncate.AtEnd, Parent = head})
+		text({Text = "@" .. LP.Name .. "  ·  session " .. D.fmtTime(os.clock() - D.started), TextSize = 12, TextColor3 = T.sub, Position = UDim2.fromOffset(62, 32), Size = UDim2.new(1, -66, 0, 16), TextTruncate = Enum.TextTruncate.AtEnd, Parent = head})
+		local nbinds = 0
+		for f, b in pairs(D.BIND) do
+			if b.key ~= "None" and not string.find(f, "^__") then nbinds += 1 end
+		end
+		D.buildCard(body, {
+			{t = "action", icon = "user-round", label = "Profile", value = "Picture, name", arrow = true, desc = "Profile picture, display name and window background.", fn = function() D.selectPage("set_personal") end},
+			{t = "action", icon = "palette", label = "Appearance", value = S.ui_theme, arrow = true, desc = "Theme, colors and layout.", fn = function() D.selectPage("set_theme") end},
+			{t = "action", icon = "folder", label = "Configs", value = S.cfg_current or "Autosave", arrow = true, desc = "Save, load and share setups.", fn = function() D.selectPage("set_configs") end},
+			{t = "action", icon = "keyboard", label = "Keybinds", value = nbinds .. " set", arrow = true, desc = "See and edit every keybind in one place.", fn = function(r) D.openKeybindManager(r, lvl + 1) end},
+		}, scope, lvl, 2)
+		D.buildCard(body, {
+			{t = "action", icon = "log-out", label = "Eject", danger = true, desc = "Turn everything off and remove the menu completely.", fn = function() D.runAction("act_eject") end},
+		}, scope, lvl, 3)
+	end)
+end
+
+function D.openKeybindManager(anchor, level, place)
+	D.openPop(level, anchor, {width = 330, title = "Keybinds", subtitle = "click one to edit", key = "kbm", place = place}, function(body, scope, lvl)
+		local card = D.buildCard(body, {}, scope, lvl, 1)
+		local function draw()
+			D.clearCard(card)
+			local list = {}
+			for f, b in pairs(D.BIND) do
+				if (b.key ~= "None" or b.mode == "Always") and not string.find(f, "^__") then list[#list + 1] = {f, b} end
+			end
+			table.sort(list, function(a, b) return (D.LABELS[a[1]] or a[1]) < (D.LABELS[b[1]] or b[1]) end)
+			if #list == 0 then
+				D.buildRow(card, {t = "action", icon = "info", label = "Nothing bound yet. Right-click a switch to bind it."}, 1, true, scope, lvl)
+				return
+			end
+			for i, e in ipairs(list) do
+				local f, b = e[1], e[2]
+				D.buildRow(card, {t = "action", label = D.LABELS[f] or f, value = b.mode == "Always" and "auto" or (string.upper(D.keyName(b.key)) .. "  ·  " .. string.lower(b.mode)), fn = function(r)
+					D.openBind(r, f, D.LABELS[f] or f, lvl + 1, D.ACTION_BIND[f])
+				end}, i, i == #list, scope, lvl)
+			end
+		end
+		draw()
+		scope[#scope + 1] = D.watch("__binds", draw)
+	end)
+end
+
+function D.openNotificationCenter(anchor)
+	D.openPop(1, anchor, {width = 340, title = "Notifications", subtitle = #D.HISTORY .. " recent", key = "ncenter", place = "belowRight"}, function(body, scope, lvl)
+		local list = new("ScrollingFrame", {Size = UDim2.new(1, 0, 0, math.clamp(#D.HISTORY, 1, 6) * 56), BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 3, ScrollBarImageColor3 = T.ink, ScrollBarImageTransparency = 0.8, CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y, LayoutOrder = 1, Parent = body})
+		vlist(list, 4)
+		if #D.HISTORY == 0 then
+			text({Text = "You're all caught up.", Size = UDim2.new(1, 0, 0, 56), TextSize = 13, TextColor3 = T.dim, TextXAlignment = Enum.TextXAlignment.Center, Parent = list})
+		end
+		for i, n in ipairs(D.HISTORY) do
+			local row = frame({Size = UDim2.new(1, 0, 0, 52), BackgroundColor3 = T.card, LayoutOrder = i, Parent = list})
+			corner(row, M.rField + 1)
+			local ib = frame({AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 10, 0.5, 0), Size = UDim2.fromOffset(28, 28), BackgroundColor3 = D.accent(), BackgroundTransparency = 0.82, Parent = row})
+			corner(ib, 14)
+			icon(n.icon, 14, D.accentText(), {AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Parent = ib})
+			text({Text = n.title, FontFace = D.F(D.W.semi), TextSize = 13, TextColor3 = T.text, Position = UDim2.fromOffset(48, 8), Size = UDim2.new(1, -110, 0, 18), TextTruncate = Enum.TextTruncate.AtEnd, Parent = row})
+			text({Text = n.body, TextSize = 12, TextColor3 = T.sub, Position = UDim2.fromOffset(48, 26), Size = UDim2.new(1, -58, 0, 16), TextTruncate = Enum.TextTruncate.AtEnd, Parent = row})
+			local ago = os.time() - n.t
+			text({Text = ago < 60 and "now" or (ago < 3600 and (math.floor(ago / 60) .. "m") or (math.floor(ago / 3600) .. "h")), AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -10, 0, 8), Size = UDim2.fromOffset(50, 18), TextSize = 11, TextColor3 = T.dim, TextXAlignment = Enum.TextXAlignment.Right, Parent = row})
+		end
+		if #D.HISTORY > 0 then
+			D.buildCard(body, {
+				{t = "action", icon = "trash-2", label = "Clear All", fn = function()
+					table.clear(D.HISTORY)
+					D.unread = 0
+					D.fire("__history")
+					D.closePops(lvl)
+				end},
+			}, scope, lvl, 2)
+		end
+	end)
+end
+
+function D.openThemeQuick(anchor)
+	D.openPop(1, anchor, {width = 300, title = "Theme", subtitle = "quick switch", key = "themeq", place = "belowRight"}, function(body, scope, lvl)
+		local grid = frame({Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = 1, Parent = body})
+		new("UIGridLayout", {CellSize = UDim2.new(0.5, -4, 0, 44), CellPadding = UDim2.fromOffset(8, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = grid})
+		for i, name in ipairs(D.THEME_NAMES) do
+			if name ~= "Custom" then
+				local p = D.PALETTES[name]
+				local b = button({BackgroundColor3 = Color3.fromHex(p.panel), BackgroundTransparency = 0, LayoutOrder = i, Parent = grid})
+				corner(b, M.rField + 2)
+				local st = new("UIStroke", {Color = S.ui_theme == name and D.accent() or T.ink, Transparency = S.ui_theme == name and 0.2 or 0.9, Thickness = S.ui_theme == name and 1.5 or 1, Parent = b})
+				local sw = frame({AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 10, 0.5, 0), Size = UDim2.fromOffset(18, 18), BackgroundColor3 = Color3.fromHex(string.sub(p.accent, 1, 6)), Parent = b})
+				corner(sw, 9)
+				text({Text = name, Position = UDim2.fromOffset(36, 0), Size = UDim2.new(1, -40, 1, 0), TextSize = 13, TextColor3 = Color3.fromHex(p.text), Parent = b})
+				b.MouseEnter:Connect(function() tween(st, 0.14, {Transparency = 0.4}) end)
+				b.MouseLeave:Connect(function() tween(st, 0.2, {Transparency = S.ui_theme == name and 0.2 or 0.9}) end)
+				b.MouseButton1Click:Connect(function()
+					D.play("click")
+					D.closePops(1)
+					set("ui_theme", name)
+				end)
+			end
+		end
+	end)
+end
+end
+do
+local new, frame, text, button, icon = D.new, D.frame, D.text, D.button, D.icon
+local corner, stroke, pad, vlist, hlist = D.corner, D.stroke, D.pad, D.vlist, D.hlist
+local tween = D.tween
+
+local field, box, st, results, sel
+
+local function score(e, q)
+	local l = string.lower(e.label)
+	if l == q then return 100 end
+	if string.sub(l, 1, #q) == q then return 80 end
+	if string.find(l, " " .. q, 1, true) then return 65 end
+	if string.find(l, q, 1, true) then return 55 end
+	if string.find(string.lower(e.path), q, 1, true) then return 30 end
+	if e.kw and string.find(e.kw, q, 1, true) then return 25 end
+	if string.find(string.lower(e.desc), q, 1, true) then return 20 end
+	return 0
+end
+
+local function highlight(label, q)
+	local l = string.lower(label)
+	local i = string.find(l, q, 1, true)
+	local hexc = D.accentText():ToHex()
+	local function esc(s) return (string.gsub(string.gsub(string.gsub(s, "&", "&amp;"), "<", "&lt;"), ">", "&gt;")) end
+	if not i then return esc(label) end
+	return esc(string.sub(label, 1, i - 1)) .. '<font color="#' .. hexc .. '"><b>' .. esc(string.sub(label, i, i + #q - 1)) .. "</b></font>" .. esc(string.sub(label, i + #q))
+end
+
+function D.goTo(e)
+	D.closePops(1)
+	if box then box:ReleaseFocus() end
+	D.selectPage(e.page)
+	task.spawn(function()
+		RunService.RenderStepped:Wait()
+		RunService.RenderStepped:Wait()
+		local page = D.W_STATE.pages[e.page]
+		local reg = D.ROWREG[e.page] or {}
+		local target = reg[e.parent or e.id]
+		if target and target.reveal then
+			target.reveal()
+			RunService.RenderStepped:Wait()
+		end
+		if not page or not target or not target.inst or not target.inst.Parent then return end
+		local sc = D.winScale() * (D.RES.factor or 1)
+		local rel = (target.inst.AbsolutePosition.Y - page.content.AbsolutePosition.Y) / sc
+		local maxY = math.max(0, page.sf.AbsoluteCanvasSize.Y / sc - page.sf.AbsoluteSize.Y / sc)
+		local y = math.clamp(rel - 90, 0, maxY)
+		tween(page.sf, 0.4, {CanvasPosition = Vector2.new(0, y)})
+		task.wait(D.tweenTime(0.42))
+		D.flashRow(target.inst)
+		if e.parent and target.open then
+			target.open()
+			task.wait(D.tweenTime(0.3))
+			local inner = D.ROWREG.__pop and D.ROWREG.__pop[e.id]
+			if inner and inner.inst then D.flashRow(inner.inst) end
+		end
+	end)
+end
+
+local function render(q)
+	if not results then return end
+	D.clearCard(results.list)
+	results.items = {}
+	local hits = {}
+	for _, e in ipairs(D.INDEX) do
+		local sc = score(e, q)
+		if sc > 0 then hits[#hits + 1] = {e = e, s = sc} end
+	end
+	table.sort(hits, function(a, b)
+		if a.s ~= b.s then return a.s > b.s end
+		return a.e.label < b.e.label
+	end)
+	results.count.Text = #hits == 0 and "" or (#hits .. (#hits == 1 and " result" or " results"))
+	if #hits == 0 then
+		text({Text = 'Nothing matches "' .. q .. '"', Size = UDim2.new(1, 0, 0, 44), TextSize = 13, TextColor3 = T.dim, TextXAlignment = Enum.TextXAlignment.Center, Parent = results.list})
+		return
+	end
+	for i = 1, math.min(#hits, 8) do
+		local e = hits[i].e
+		local entry = D.ENTRY[e.page]
+		local b = button({Size = UDim2.new(1, 0, 0, 48), BackgroundColor3 = T.ink, BackgroundTransparency = 1, LayoutOrder = i, Parent = results.list})
+		corner(b, M.rField + 1)
+		local ib = frame({AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 8, 0.5, 0), Size = UDim2.fromOffset(30, 30), BackgroundColor3 = T.field, Parent = b})
+		corner(ib, M.rField)
+		icon(entry and entry.icon or "search", 15, T.sub, {AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Parent = ib})
+		text({Text = highlight(e.label, q), RichText = true, Position = UDim2.fromOffset(48, 7), Size = UDim2.new(1, -84, 0, 18), TextSize = 13, TextColor3 = T.text, TextTruncate = Enum.TextTruncate.AtEnd, Parent = b})
+		text({Text = e.path, Position = UDim2.fromOffset(48, 25), Size = UDim2.new(1, -84, 0, 16), TextSize = 11, TextColor3 = T.dim, TextTruncate = Enum.TextTruncate.AtEnd, Parent = b})
+		local go = icon("chevron-right", 14, T.dim, {AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -10, 0.5, 0), Parent = b})
+		results.items[i] = {b = b, e = e, go = go}
+		b.MouseEnter:Connect(function()
+			sel = i
+			for k, it in ipairs(results.items) do
+				tween(it.b, 0.12, {BackgroundTransparency = k == i and 0.95 or 1})
+			end
+		end)
+		b.MouseButton1Click:Connect(function()
+			D.play("click")
+			D.goTo(e)
+		end)
+		if S.ui_anim ~= false then
+			for _, lbl in ipairs(b:GetDescendants()) do
+				if lbl:IsA("TextLabel") then
+					lbl.TextTransparency = 1
+					tween(lbl, 0.2 + i * 0.03, {TextTransparency = 0})
+				end
+			end
+		end
+	end
+	sel = 1
+	if results.items[1] then results.items[1].b.BackgroundTransparency = 0.95 end
+end
+
+local function openResults()
+	if results and results.frame and results.frame.Parent then return end
+	local body, entry = D.openPop(1, field, {width = 420, place = "below", pad = 6, gap = 4, key = "search", onClose = function() results = nil end}, function(b2)
+		local hd = frame({Size = UDim2.new(1, 0, 0, 20), BackgroundTransparency = 1, LayoutOrder = 1, Parent = b2})
+		text({Text = "OPTIONS", FontFace = D.F(D.W.semi), TextSize = 10, TextColor3 = T.dim, Position = UDim2.fromOffset(8, 0), Size = UDim2.new(0.5, 0, 1, 0), Parent = hd})
+		local count = text({AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -8, 0, 0), Size = UDim2.new(0.5, 0, 1, 0), TextSize = 10, TextColor3 = T.dim, TextXAlignment = Enum.TextXAlignment.Right, Parent = hd})
+		local list = frame({Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = 2, Parent = b2})
+		vlist(list, 2)
+		results = {list = list, count = count, items = {}}
+	end)
+	if entry then results.frame = entry.frame end
+end
+
+function D.searchMove(dir)
+	if not results or not results.items or #results.items == 0 then return end
+	sel = math.clamp((sel or 1) + dir, 1, #results.items)
+	for k, it in ipairs(results.items) do
+		tween(it.b, 0.12, {BackgroundTransparency = k == sel and 0.95 or 1})
+	end
+end
+
+function D.searchEnter()
+	if results and results.items and results.items[sel or 1] then
+		D.play("click")
+		D.goTo(results.items[sel or 1].e)
+	end
+end
+
+function D.focusSearch()
+	if box and box.Parent then box:CaptureFocus() end
+end
+
+function D.buildSearch(panel)
+	field = frame({Position = UDim2.fromOffset(18, 16), Size = UDim2.fromOffset(300, 32), BackgroundColor3 = T.field, ZIndex = 4, Parent = panel})
+	D.W_STATE.search = field
+	corner(field, M.rField + 2)
+	st = stroke(field, 0.92)
+	local ic = icon("search", 15, T.dim, {AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 11, 0.5, 0), ZIndex = 5, Parent = field})
+	box = new("TextBox", {Position = UDim2.fromOffset(34, 0), Size = UDim2.new(1, -86, 1, 0), BackgroundTransparency = 1, Text = "", PlaceholderText = "Search", PlaceholderColor3 = T.dim, TextColor3 = T.text, FontFace = D.F(D.W.med), TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false, ClipsDescendants = true, ZIndex = 5, Parent = field})
+	local hint = frame({AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -8, 0.5, 0), Size = UDim2.fromOffset(0, 20), AutomaticSize = Enum.AutomaticSize.X, BackgroundColor3 = T.card, ZIndex = 5, Parent = field})
+	corner(hint, 5)
+	pad(hint, 0, 6, 0, 6)
+	text({Text = "Ctrl+F", TextSize = 10, TextColor3 = T.dim, Size = UDim2.fromOffset(0, 20), AutomaticSize = Enum.AutomaticSize.X, ZIndex = 5, Parent = hint})
+	box.Focused:Connect(function()
+		st.Color = D.accent()
+		tween(st, 0.16, {Transparency = 0.35})
+		D.iconColor(ic, D.accentText())
+		hint.Visible = false
+		if box.Text ~= "" then
+			openResults()
+			render(string.lower(box.Text))
+		end
+	end)
+	box.FocusLost:Connect(function(enter)
+		tween(st, 0.2, {Transparency = 0.92})
+		D.iconColor(ic, T.dim)
+		if box.Text == "" then hint.Visible = true end
+		task.delay(0.2, function() if st.Parent then st.Color = T.ink end end)
+		if enter then D.searchEnter() end
+	end)
+	box:GetPropertyChangedSignal("Text"):Connect(function()
+		local q = string.lower((string.gsub(box.Text, "^%s+", "")))
+		if q == "" then
+			D.closePops(1)
+			return
+		end
+		openResults()
+		render(q)
+	end)
+end
+end
+do
+local new, frame, text, button, icon = D.new, D.frame, D.text, D.button, D.icon
+local corner, stroke, pad, vlist, hlist = D.corner, D.stroke, D.pad, D.vlist, D.hlist
+local tween = D.tween
+
+local O = {}
+D.O = O
+
+local function clampPos(x, y, w, h)
+	local vp = D.viewport()
+	return math.clamp(x, 0, math.max(0, vp.X - w)), math.clamp(y, 0, math.max(0, vp.Y - h))
+end
+D.clampPos = clampPos
+
+local function draggable(o, kx, ky)
+	o.InputBegan:Connect(function(i)
+		if not D.menuOpen or S.ov_lock or i.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
+		local m = D.mouse()
+		local off = Vector2.new(m.X, m.Y) - D.spos(o)
+		D.startDrag(function(x, y)
+			local vp = D.viewport()
+			local s = D.vsize(o)
+			o.Position = UDim2.fromOffset(math.clamp(x - off.X, 0, vp.X - s.X), math.clamp(y - off.Y, 0, vp.Y - s.Y))
+		end, function()
+			D.META[kx], D.META[ky] = o.Position.X.Offset, o.Position.Y.Offset
+			D.writeMeta()
+		end)
+	end)
+end
+
+local function glassCard(props, factor)
+	props.BackgroundColor3 = T.win
+	local f = frame(props)
+	corner(f, (M.rCard or 10) + 1)
+	stroke(f, 0.76, true)
+	D.onGlass(f, factor or 0.35)
+	D.cardGrad(f)
+	D.halo(f)
+	return f
+end
+D.draggable, D.glassCard = draggable, glassCard
+
+function D.buildOverlays()
+	if O.root then O.root:Destroy() end
+	O.root = frame({Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = D.L.ov})
+
+	local wx, wy = clampPos(D.META.wm_x or 16, D.META.wm_y or 70, 200, 38)
+	local wm = glassCard({Position = UDim2.fromOffset(wx, wy), Size = UDim2.fromOffset(0, 38), AutomaticSize = Enum.AutomaticSize.X, Parent = O.root}, 0.4)
+	O.wm = wm
+	pad(wm, 0, 14, 0, 9)
+	hlist(wm, 11)
+	local logo = frame({Size = UDim2.fromOffset(0, 38), AutomaticSize = Enum.AutomaticSize.X, BackgroundTransparency = 1, LayoutOrder = 1, Parent = wm})
+	hlist(logo, 8)
+	if D.CONFIG.Logo then D.logoMark(logo, 22, 1) end
+	text({Text = D.CONFIG.WatermarkText or D.CONFIG.Title or "arvn", FontFace = D.F(D.W.bold), TextSize = 15, TextColor3 = T.text, Size = UDim2.fromOffset(0, 38), AutomaticSize = Enum.AutomaticSize.X, LayoutOrder = 2, Parent = logo})
+	O.wmParts = {}
+	local defs = {{"fps", "gauge"}, {"ping", "wifi"}, {"region", "map-pin"}, {"uptime", "timer"}, {"time", "sun"}, {"exec", "cpu"}, {"user", nil}}
+	for i, d in ipairs(defs) do
+		local sep = frame({Size = UDim2.fromOffset(1, 16), BackgroundColor3 = T.ink, BackgroundTransparency = 0.85, LayoutOrder = 10 + i * 2, Parent = wm})
+		local grp = frame({Size = UDim2.fromOffset(0, 38), AutomaticSize = Enum.AutomaticSize.X, BackgroundTransparency = 1, LayoutOrder = 11 + i * 2, Parent = wm})
+		hlist(grp, 6)
+		if d[2] then
+			local ic = icon(d[2], 14, D.accentText(), {LayoutOrder = 1, Parent = grp})
+			D.onAccent(ic, function() D.iconColor(ic, D.accentText()) end)
+		end
+		local l = text({Size = UDim2.fromOffset(0, 38), AutomaticSize = Enum.AutomaticSize.X, FontFace = D.F(D.W.semi), TextSize = 13, TextColor3 = T.text, LayoutOrder = 2, Parent = grp})
+		if not d[2] then
+			local av = new("ImageLabel", {Size = UDim2.fromOffset(22, 22), BackgroundColor3 = T.field, BorderSizePixel = 0, Image = D.avatarImage(), LayoutOrder = 3, Parent = grp})
+			corner(av, 11)
+			local ring = new("UIStroke", {Color = D.accent(), Thickness = 1.5, Parent = av})
+			D.onAccent(av, function(a) ring.Color = a end)
+		end
+		O.wmParts[d[1]] = {sep = sep, grp = grp, lbl = l}
+	end
+	for i, cp in ipairs(D.WM_PARTS or {}) do
+		local sep = frame({Size = UDim2.fromOffset(1, 16), BackgroundColor3 = T.ink, BackgroundTransparency = 0.85, LayoutOrder = 100 + i * 2, Parent = wm})
+		local grp = frame({Size = UDim2.fromOffset(0, 38), AutomaticSize = Enum.AutomaticSize.X, BackgroundTransparency = 1, LayoutOrder = 101 + i * 2, Parent = wm})
+		hlist(grp, 6)
+		if cp.icon then
+			local ic = icon(cp.icon, 14, D.accentText(), {LayoutOrder = 1, Parent = grp})
+			D.onAccent(ic, function() D.iconColor(ic, D.accentText()) end)
+		end
+		local l = text({Size = UDim2.fromOffset(0, 38), AutomaticSize = Enum.AutomaticSize.X, FontFace = D.F(D.W.semi), TextSize = 13, TextColor3 = T.text, LayoutOrder = 2, Parent = grp})
+		O.wmParts["c:" .. cp.key] = {sep = sep, grp = grp, lbl = l, custom = cp}
+	end
+	draggable(wm, "wm_x", "wm_y")
+
+	local kx, ky = clampPos(D.META.kb_x or 16, D.META.kb_y or 330, 250, 80)
+	local kb = glassCard({Position = UDim2.fromOffset(kx, ky), Size = UDim2.fromOffset(250, 0), AutomaticSize = Enum.AutomaticSize.Y, Parent = O.root}, 0.4)
+	O.kb = kb
+	pad(kb, 12, 12, 12, 12)
+	vlist(kb, 8)
+	local hd = frame({Size = UDim2.new(1, 0, 0, 22), BackgroundTransparency = 1, LayoutOrder = 1, Parent = kb})
+	local badge = frame({AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 0, 0.5, 0), Size = UDim2.fromOffset(22, 22), BackgroundColor3 = D.accent(), BackgroundTransparency = 0.8, Parent = hd})
+	corner(badge, 7)
+	local kic = icon("command", 13, D.accentText(), {AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Parent = badge})
+	D.onAccent(badge, function(a)
+		badge.BackgroundColor3 = a
+		D.iconColor(kic, D.accentText())
+	end)
+	text({Text = "Keybinds", FontFace = D.F(D.W.semi), TextSize = 14, TextColor3 = T.text, Position = UDim2.fromOffset(30, 0), Size = UDim2.new(1, -100, 1, 0), Parent = hd})
+	O.kbCount = text({AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 0, 0, 0), Size = UDim2.new(0, 70, 1, 0), TextSize = 11, TextColor3 = T.dim, TextXAlignment = Enum.TextXAlignment.Right, Parent = hd})
+	O.kbList = frame({Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = 3, Parent = kb})
+	vlist(O.kbList, 5)
+	O.kbEmpty = text({Text = "Nothing bound yet. Right-click a switch to bind it.", TextSize = 12, TextColor3 = T.dim, TextWrapped = true, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, LayoutOrder = 0, Parent = O.kbList})
+	O.kbRows = {}
+	draggable(kb, "kb_x", "kb_y")
+
+	D.buildKeystrokes()
+	if D.buildWidgets then D.buildWidgets(O.root) end
+	D.refreshOverlays(D.lastFps, D.lastPing)
+end
+
+local MODE_GLYPH = {Toggle = "power", Hold = "circle-dot", Always = "infinity", Release = "eye-off"}
+function D.refreshKeybinds()
+	if not O.kb then return end
+	local list = {}
+	for flag, b in pairs(D.BIND) do
+		if not D.ACTION_BIND[flag] and b.list ~= false and not string.find(flag, "^__") and (b.key ~= "None" or b.mode == "Always") then
+			local act = S[flag] and true or false
+			if act or S.kb_inactive then
+				list[#list + 1] = {D.LABELS[flag] or flag, b, act}
+			end
+		end
+	end
+	table.sort(list, function(a, c)
+		if a[3] ~= c[3] then return a[3] end
+		return a[1] < c[1]
+	end)
+	local onCount = 0
+	for i, e in ipairs(list) do
+		if e[3] then onCount += 1 end
+		local r = O.kbRows[i]
+		if not r then
+			local fr = frame({Size = UDim2.new(1, 0, 0, 30), BackgroundColor3 = T.card, BackgroundTransparency = 0.3, LayoutOrder = i, Parent = O.kbList})
+			corner(fr, M.rField + 1)
+			local row = frame({Position = UDim2.fromOffset(5, 0), Size = UDim2.new(1, -12, 1, 0), BackgroundTransparency = 1, Parent = fr})
+			hlist(row, 9)
+			local cap = frame({Size = UDim2.fromOffset(0, 20), AutomaticSize = Enum.AutomaticSize.X, BackgroundColor3 = T.field, LayoutOrder = 1, Parent = row})
+			corner(cap, 5)
+			new("UIStroke", {Color = T.ink, Transparency = 0.86, Parent = cap})
+			pad(cap, 0, 7, 0, 7)
+			new("UISizeConstraint", {MinSize = Vector2.new(26, 20), Parent = cap})
+			local k = text({Size = UDim2.fromOffset(0, 20), AutomaticSize = Enum.AutomaticSize.X, FontFace = D.F(D.W.semi), TextSize = 11, TextXAlignment = Enum.TextXAlignment.Center, Parent = cap})
+			local l = text({Size = UDim2.new(0, 0, 1, 0), TextSize = 13, TextTruncate = Enum.TextTruncate.AtEnd, LayoutOrder = 2, Parent = row})
+			new("UIFlexItem", {FlexMode = Enum.UIFlexMode.Fill, Parent = l})
+			local mi = icon("power", 13, T.dim, {LayoutOrder = 3, Parent = row})
+			r = {f = fr, cap = cap, k = k, l = l, mi = mi}
+			O.kbRows[i] = r
+		end
+		local b = e[2]
+		r.f.Visible = true
+		r.k.Text = b.mode == "Always" and "AUTO" or string.upper(D.keyName(b.key))
+		r.k.TextColor3 = e[3] and D.onAccentColor() or T.label
+		r.cap.BackgroundColor3 = e[3] and D.accent() or T.field
+		r.l.Text = e[1]
+		r.l.TextColor3 = e[3] and T.text or T.sub
+		D.setIcon(r.mi, MODE_GLYPH[b.mode] or "power")
+		D.iconColor(r.mi, e[3] and D.accentText() or T.dim)
+	end
+	for i = #list + 1, #O.kbRows do O.kbRows[i].f.Visible = false end
+	O.kbEmpty.Visible = #list == 0
+	O.kbCount.Text = #list == 0 and "" or (onCount .. " of " .. #list .. " on")
+	local show = S.ov_kb and not (S.kb_hideempty and #list == 0)
+	O.kb.Visible = show and not D.cleanShot
+end
+
+D.region = nil
+local regionAsked = false
+function D.lookupRegion()
+	if regionAsked then return end
+	regionAsked = true
+	local body
+	pcall(function()
+		local req = (syn and syn.request) or request or http_request
+		if req then
+			local r = req({Url = "http://ip-api.com/json/?fields=status,city,countryCode", Method = "GET"})
+			body = r and r.Body
+		else
+			body = game:HttpGet("http://ip-api.com/json/?fields=status,city,countryCode")
+		end
+	end)
+	if body then
+		local ok, data = pcall(function() return HttpService:JSONDecode(body) end)
+		if ok and type(data) == "table" and data.status == "success" then
+			D.region = tostring(data.city or "?") .. ", " .. tostring(data.countryCode or "?")
+			if D.alive then D.refreshOverlays() end
+		end
+	end
+end
+
+function D.refreshOverlays(fps, ping)
+	if not O.wm then return end
+	fps = fps or D.lastFps or 0
+	ping = ping or D.lastPing or 0
+	local style = S.wm_style
+	O.wm.Visible = S.ov_wm and not D.cleanShot
+	O.wm.BackgroundTransparency = style == "Minimal" and 1 or (style == "Solid" and 0 or D.glassT(0.4))
+	local st = O.wm:FindFirstChildOfClass("UIStroke")
+	if st then st.Enabled = style ~= "Minimal" end
+	local name = (S.prof_name and S.prof_name ~= "") and S.prof_name or LP.Name
+	local vals = {
+		fps = S.wm_fps and (fps .. " FPS") or nil,
+		ping = S.wm_ping and (ping .. " ms") or nil,
+		region = (S.wm_region and D.region) or nil,
+		uptime = S.wm_uptime and D.fmtTime(os.clock() - D.started) or nil,
+		time = S.wm_time and os.date("%H:%M") or nil,
+		exec = S.wm_exec and D.executor or nil,
+		user = S.wm_user and name or nil,
+	}
+	for k, part in pairs(O.wmParts) do
+		local v = vals[k]
+		if part.custom then
+			local ok, r = pcall(part.custom.get)
+			v = (ok and r ~= nil and r ~= "") and tostring(r) or nil
+		end
+		part.sep.Visible = v ~= nil
+		part.grp.Visible = v ~= nil
+		if v then part.lbl.Text = v end
+	end
+	D.refreshKeybinds()
+	if O.ks then O.ks.Visible = S.ov_ks and not D.cleanShot end
+	for _, w in ipairs(D.WIDGETS or {}) do
+		if w.inst and w.inst.Parent then w.inst.Visible = w.visible ~= false and not D.cleanShot end
+	end
+end
+
+local KS = {}
+local clicks = {MouseButton1 = {}, MouseButton2 = {}}
+
+function D.buildKeystrokes()
+	local layout = S.ks_layout
+	local size = layout == "Compact" and 34 or 42
+	local gap = 5
+	local ks = frame({Position = UDim2.fromOffset(D.META.ks_x or 16, D.META.ks_y or 560), Size = UDim2.fromOffset(0, 0), AutomaticSize = Enum.AutomaticSize.XY, BackgroundTransparency = 1, Parent = O.root})
+	O.ks = ks
+	KS = {}
+	local function key(name, label, x, y, w, h)
+		local k = frame({Position = UDim2.fromOffset(x, y), Size = UDim2.fromOffset(w, h), BackgroundColor3 = T.win, Parent = ks})
+		corner(k, M.rField + 2)
+		stroke(k, 0.8, true)
+		D.onGlass(k, 0.4)
+		local fill = frame({Size = UDim2.fromScale(1, 1), BackgroundColor3 = D.accent(), BackgroundTransparency = 1, Parent = k})
+		corner(fill, M.rField + 2)
+		D.onAccent(fill, function(a) fill.BackgroundColor3 = a end)
+		local l = text({Text = label, Size = UDim2.new(1, 0, 0, name == "Space" and h or h - (S.ks_cps and (name == "MouseButton1" or name == "MouseButton2") and 12 or 0)), FontFace = D.F(D.W.semi), TextSize = name == "Space" and 11 or 13, TextColor3 = T.label, TextXAlignment = Enum.TextXAlignment.Center, Parent = k})
+		local sc = new("UIScale", {Parent = k})
+		local cps
+		if S.ks_cps and (name == "MouseButton1" or name == "MouseButton2") then
+			cps = text({Text = "0 cps", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -5), Size = UDim2.new(1, 0, 0, 12), TextSize = 10, TextColor3 = T.dim, TextXAlignment = Enum.TextXAlignment.Center, Parent = k})
+		end
+		KS[name] = {k = k, fill = fill, l = l, sc = sc, cps = cps}
+	end
+	local u = size + gap
+	if layout == "Wide" then
+		local x = 0
+		for _, kk in ipairs({{"A", "A"}, {"W", "W"}, {"S", "S"}, {"D", "D"}}) do
+			key(kk[1], kk[2], x, 0, size, size)
+			x += u
+		end
+		if S.ks_space then
+			key("Space", "SPACE", x, 0, size * 2, size)
+			x += size * 2 + gap
+		end
+		if S.ks_mouse then
+			key("MouseButton1", "LMB", x, 0, size + 8, size)
+			key("MouseButton2", "RMB", x + size + 8 + gap, 0, size + 8, size)
+		end
+	else
+		key("W", "W", u, 0, size, size)
+		key("A", "A", 0, u, size, size)
+		key("S", "S", u, u, size, size)
+		key("D", "D", u * 2, u, size, size)
+		local y = u * 2
+		local full = size * 3 + gap * 2
+		if S.ks_space then
+			key("Space", "SPACE", 0, y, full, math.floor(size * 0.6))
+			y += math.floor(size * 0.6) + gap
+		end
+		if S.ks_mouse then
+			local half = (full - gap) / 2
+			local mh = S.ks_cps and size + 8 or size
+			key("MouseButton1", "LMB", 0, y, half, mh)
+			key("MouseButton2", "RMB", half + gap, y, half, mh)
+		end
+	end
+	draggable(ks, "ks_x", "ks_y")
+	ks.Visible = S.ov_ks and not D.cleanShot
+end
+
+function D.keystroke(name, down)
+	local k = KS[name]
+	if not k then return end
+	if down then
+		local alpha = T.light and 0.5 or 0.65
+		tween(k.fill, 0.08, {BackgroundTransparency = 1 - alpha})
+		tween(k.l, 0.08, {TextColor3 = D.onAccentColor(alpha)})
+		k.sc.Scale = 0.92
+		tween(k.sc, 0.3, {Scale = 1}, Enum.EasingStyle.Back)
+		local c = clicks[name]
+		if c then c[#c + 1] = os.clock() end
+	else
+		tween(k.fill, 0.22, {BackgroundTransparency = 1})
+		tween(k.l, 0.22, {TextColor3 = T.label})
+	end
+end
+
+function D.stepKeystrokes()
+	local now = os.clock()
+	for name, list in pairs(clicks) do
+		local i = 1
+		while list[i] and now - list[i] > 1 do i += 1 end
+		if i > 1 then
+			for _ = 1, i - 1 do table.remove(list, 1) end
+		end
+		local k = KS[name]
+		if k and k.cps then k.cps.Text = #list .. " cps" end
+	end
+end
+
+local stacks = {}
+local function stackFor(pos)
+	local s = stacks[pos]
+	if s and s.Parent then return s end
+	s = frame({Size = UDim2.fromOffset(300, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, Parent = D.L.toast})
+	local l = vlist(s, 8)
+	if string.find(pos, "Right") then l.HorizontalAlignment = Enum.HorizontalAlignment.Right end
+	if pos == "Top Right" then
+		s.AnchorPoint, s.Position = Vector2.new(1, 0), UDim2.new(1, -16, 0, 16)
+	elseif pos == "Top Center" then
+		s.AnchorPoint, s.Position = Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 70)
+		l.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	elseif pos == "Top Left" then
+		s.AnchorPoint, s.Position = Vector2.new(0, 0), UDim2.new(0, 16, 0, 70)
+	elseif pos == "Bottom Right" then
+		s.AnchorPoint, s.Position = Vector2.new(1, 1), UDim2.new(1, -16, 1, -16)
+		l.VerticalAlignment = Enum.VerticalAlignment.Bottom
+	elseif pos == "Bottom Center" then
+		s.AnchorPoint, s.Position = Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -120)
+		l.VerticalAlignment = Enum.VerticalAlignment.Bottom
+		l.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	else
+		s.AnchorPoint, s.Position = Vector2.new(0, 1), UDim2.new(0, 16, 1, -16)
+		l.VerticalAlignment = Enum.VerticalAlignment.Bottom
+	end
+	stacks[pos] = s
+	return s
+end
+
+local live = {}
+local counter = 0
+D.HISTORY = {}
+D.unread = 0
+local KIND_ICON = {Success = "circle-check", Warning = "triangle-alert", Error = "circle-x", Info = "info"}
+function D.notify(title, body, opts)
+	opts = opts or {}
+	if not D.alive then return end
+	local tone = opts.kind and D.TONES[opts.kind]
+	if opts.kind and not opts.icon then opts.icon = KIND_ICON[opts.kind] end
+	if opts.kind == "Error" and not opts.sound then opts.sound = "error" end
+	if not opts.compact then
+		table.insert(D.HISTORY, 1, {title = tostring(title), body = tostring(body or ""), icon = opts.icon or "bell", t = os.time()})
+		while #D.HISTORY > 40 do table.remove(D.HISTORY) end
+		D.unread += 1
+		D.fire("__history")
+	end
+	if S.nt_on == false then
+		local noop = function() end
+		return {Dismiss = noop, SetTitle = noop, SetBody = noop, SetProgress = noop}
+	end
+	local pos = S.nt_pos or "Top Right"
+	local stack = stackFor(pos)
+	counter += 1
+	local top = string.find(pos, "Top") ~= nil
+	local compact = opts.compact or S.nt_style == "Compact"
+	local dur = opts.dur or S.nt_dur or 4
+	local slot = frame({Size = UDim2.fromOffset(compact and 0 or 300, 0), AutomaticSize = compact and Enum.AutomaticSize.XY or Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = top and -counter or counter, Parent = stack})
+	local card = new("CanvasGroup", {Size = UDim2.fromOffset(compact and 0 or 300, 0), AutomaticSize = compact and Enum.AutomaticSize.XY or Enum.AutomaticSize.Y, BackgroundColor3 = T.win, GroupTransparency = 1, Parent = slot})
+	corner(card, compact and 18 or (M.rCard or 10) + 1)
+	stroke(card, 0.74, true)
+	D.onGlass(card, 0.25)
+	local inner = frame({Size = UDim2.fromOffset(compact and 0 or 300, 0), AutomaticSize = compact and Enum.AutomaticSize.XY or Enum.AutomaticSize.Y, BackgroundTransparency = 1, Parent = card})
+	if typeof(opts.color) == "Color3" then tone = opts.color end
+	local h = {}
+	local titleStr, bodyStr = tostring(title), tostring(body or "")
+	local progBar
+	if compact then
+		pad(inner, 8, 14, 8, 10)
+		hlist(inner, 8)
+		icon(opts.icon or "bell", 14, tone or D.accentText(), {LayoutOrder = 1, Parent = inner})
+		local line = text({Text = "", Size = UDim2.fromOffset(0, 18), AutomaticSize = Enum.AutomaticSize.X, TextSize = 13, TextColor3 = T.text, LayoutOrder = 2, Parent = inner})
+		local function draw() line.Text = titleStr .. (bodyStr ~= "" and ("  ·  " .. bodyStr) or "") end
+		draw()
+		function h.SetTitle(_, v)
+			titleStr = tostring(v)
+			draw()
+		end
+		function h.SetBody(_, v)
+			bodyStr = tostring(v or "")
+			draw()
+		end
+	else
+		pad(inner, 12, 14, 16, 12)
+		local ib = frame({Size = UDim2.fromOffset(30, 30), BackgroundColor3 = tone or D.accent(), BackgroundTransparency = 0.82, Parent = inner})
+		corner(ib, 15)
+		icon(opts.icon or "bell", 15, tone or D.accentText(), {AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Parent = ib})
+		local col = frame({Position = UDim2.fromOffset(42, 0), Size = UDim2.new(1, -42, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, Parent = inner})
+		vlist(col, 3)
+		local tl = text({Text = titleStr, FontFace = D.F(D.W.semi), TextSize = 14, TextColor3 = T.text, Size = UDim2.new(1, 0, 0, 16), TextTruncate = Enum.TextTruncate.AtEnd, LayoutOrder = 1, Parent = col})
+		local bl = text({Text = bodyStr, TextSize = 12, TextColor3 = T.sub, TextWrapped = true, RichText = true, Visible = bodyStr ~= "", Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, LayoutOrder = 2, Parent = col})
+		function h.SetTitle(_, v) tl.Text = tostring(v) end
+		function h.SetBody(_, v)
+			bl.Text = tostring(v or "")
+			bl.Visible = bl.Text ~= ""
+		end
+		function h.SetProgress(_, v)
+			if not progBar then
+				local trk = frame({Size = UDim2.new(1, 0, 0, 4), BackgroundColor3 = T.field, LayoutOrder = 3, Parent = col})
+				corner(trk, 2)
+				progBar = frame({Size = UDim2.fromScale(0, 1), BackgroundColor3 = tone or D.accent(), Parent = trk})
+				corner(progBar, 2)
+			end
+			tween(progBar, 0.25, {Size = UDim2.fromScale(math.clamp(tonumber(v) or 0, 0, 1), 1)})
+		end
+		if type(opts.buttons) == "table" and #opts.buttons > 0 then
+			local row = frame({Size = UDim2.new(1, 0, 0, 28), BackgroundTransparency = 1, LayoutOrder = 4, Parent = col})
+			hlist(row, 6)
+			pad(row, 4, 0, 0, 0)
+			for i, bd in ipairs(opts.buttons) do
+				local b = button({Size = UDim2.fromOffset(0, 24), AutomaticSize = Enum.AutomaticSize.X, BackgroundColor3 = i == 1 and (tone or D.accent()) or T.field, BackgroundTransparency = i == 1 and 0.75 or 0, Text = tostring(bd.Name or bd[1] or "OK"), TextSize = 12, FontFace = D.F(D.W.semi), TextColor3 = T.text, ZIndex = 6, LayoutOrder = i, Parent = row})
+				corner(b, 6)
+				pad(b, 0, 10, 0, 10)
+				b.MouseButton1Click:Connect(function()
+					D.play("click")
+					local cb = bd.Callback or bd[2]
+					if cb then task.spawn(cb) end
+					if h.Dismiss then h.Dismiss() end
+				end)
+			end
+		end
+		if not opts.persist then
+			local bar = frame({AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 12, 1, -6), Size = UDim2.new(1, -24, 0, 2), BackgroundColor3 = tone or D.accent(), BackgroundTransparency = 0.25, Parent = card})
+			corner(bar, 1)
+			TweenService:Create(bar, TweenInfo.new(dur, Enum.EasingStyle.Linear), {Size = UDim2.new(0, 0, 0, 2)}):Play()
+		end
+	end
+	h.SetProgress = h.SetProgress or function() end
+	local blockerB = D.blocker(card, 5)
+	local dx = string.find(pos, "Right") and 40 or (string.find(pos, "Left") and -40 or 0)
+	local dy = dx == 0 and (top and -20 or 20) or 0
+	card.Position = UDim2.fromOffset(dx, dy)
+	tween(card, 0.4, {Position = UDim2.fromOffset(0, 0), GroupTransparency = 0})
+	if opts.sound ~= "none" then D.play(opts.sound or "notify") end
+	local n = {slot = slot, card = card, dead = false}
+	live[#live + 1] = n
+	local function kill()
+		if n.dead then return end
+		n.dead = true
+		tween(card, 0.25, {Position = UDim2.fromOffset(dx, dy), GroupTransparency = 1})
+		task.delay(D.tweenTime(0.26), function() slot:Destroy() end)
+	end
+	blockerB.MouseButton1Click:Connect(function()
+		if opts.callback then task.spawn(opts.callback) end
+		kill()
+	end)
+	if not opts.persist then task.delay(dur, kill) end
+	h.Dismiss = kill
+	h.Close = kill
+	local alive = {}
+	for _, x in ipairs(live) do
+		if not x.dead and x.slot.Parent then alive[#alive + 1] = x end
+	end
+	live = alive
+	local maxv = S.nt_max or 5
+	while #live > maxv do
+		local old = table.remove(live, 1)
+		old.dead = true
+		old.slot:Destroy()
+	end
+	return h
+end
+
+function D.clearNotifications()
+	for _, s in pairs(stacks) do s:Destroy() end
+	stacks = {}
+	live = {}
+end
+
+local XH = {}
+function D.buildHud()
+	if XH.root then XH.root:Destroy() end
+	XH.root = frame({Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = D.L.hud})
+	XH.center = frame({AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(120, 120), BackgroundTransparency = 1, Parent = XH.root})
+	XH.lines, XH.backs = {}, {}
+	for i = 1, 4 do
+		XH.backs[i] = frame({AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = T.black, Visible = false, Parent = XH.center})
+		XH.lines[i] = frame({AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = T.white, Visible = false, ZIndex = 2, Parent = XH.center})
+	end
+	XH.dotBack = frame({AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), BackgroundColor3 = T.black, Visible = false, Parent = XH.center})
+	XH.dot = frame({AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), BackgroundColor3 = T.white, Visible = false, ZIndex = 2, Parent = XH.center})
+	XH.circle = frame({AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), BackgroundTransparency = 1, Visible = false, Parent = XH.center})
+	corner(XH.circle, 999)
+	XH.circleStroke = new("UIStroke", {Color = T.white, Thickness = 2, Parent = XH.circle})
+	XH.circleBack = new("UIStroke", {Color = T.black, Thickness = 4, Transparency = 0.4, Parent = frame({AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), BackgroundTransparency = 1, Parent = XH.center})})
+	corner(XH.circleBack.Parent, 999)
+	XH.top = frame({BackgroundColor3 = T.black, Size = UDim2.new(1, 0, 0, 0), BorderSizePixel = 0, Parent = XH.root})
+	XH.bottom = frame({AnchorPoint = Vector2.new(0, 1), Position = UDim2.fromScale(0, 1), BackgroundColor3 = T.black, Size = UDim2.new(1, 0, 0, 0), BorderSizePixel = 0, Parent = XH.root})
+	XH.vig = new("ImageLabel", {Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Image = D.ICON.vignette or "", ImageTransparency = 1, ScaleType = Enum.ScaleType.Stretch, Parent = XH.root})
+	XH.t = 0
+end
+
+function D.stepHud(dt)
+	if not XH.root then return end
+	XH.t += dt
+	local hidden = D.cleanShot
+	local on = S.xh_on and not hidden
+	local style = S.xh_style
+	local c, a = D.parseColor(S.xh_on_color)
+	local oc, oa = D.parseColor(S.xh_outline_color)
+	local len, th = S.xh_len or 7, S.xh_thick or 2
+	local gap = S.xh_gap or 4
+	if S.xh_pulse then gap += (math.sin(XH.t * 2.4) * 0.5 + 0.5) * (S.xh_pulse_amt or 3) end
+	XH.center.Rotation = S.xh_spin and (XH.t * (S.xh_spin_speed or 180)) % 360 or 0
+	local arms = on and (style == "Cross" or style == "Plus Dot" or style == "T-Shape" or style == "Chevron")
+	local specs = {
+		{0, -(gap + len / 2), th, len, 0},
+		{0, gap + len / 2, th, len, 0},
+		{-(gap + len / 2), 0, len, th, 0},
+		{gap + len / 2, 0, len, th, 0},
+	}
+	if style == "Chevron" then
+		specs = {
+			{-(gap + len / 2) * 0.7, (gap + len / 2) * 0.7, len, th, -45},
+			{(gap + len / 2) * 0.7, (gap + len / 2) * 0.7, len, th, 45},
+			{0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 0},
+		}
+	end
+	for i = 1, 4 do
+		local l, b = XH.lines[i], XH.backs[i]
+		local sp = specs[i]
+		local vis = arms and not (style == "T-Shape" and i == 1) and sp[3] > 0
+		l.Visible = vis
+		b.Visible = vis and S.xh_outline
+		if vis then
+			l.Position = UDim2.new(0.5, sp[1], 0.5, sp[2])
+			l.Size = UDim2.fromOffset(sp[3], sp[4])
+			l.Rotation = sp[5]
+			l.BackgroundColor3 = c
+			l.BackgroundTransparency = 1 - a
+			b.Position = l.Position
+			b.Size = UDim2.fromOffset(sp[3] + 2, sp[4] + 2)
+			b.Rotation = sp[5]
+			b.BackgroundColor3 = oc
+			b.BackgroundTransparency = 1 - oa
+		end
+	end
+	local dotOn = on and (style == "Dot" or style == "Plus Dot" or S.xh_dot)
+	local ds = math.max(2, th + (style == "Dot" and 2 or 0))
+	XH.dot.Visible = dotOn
+	XH.dotBack.Visible = dotOn and S.xh_outline
+	XH.dot.Size = UDim2.fromOffset(ds, ds)
+	XH.dotBack.Size = UDim2.fromOffset(ds + 2, ds + 2)
+	XH.dot.BackgroundColor3 = c
+	XH.dot.BackgroundTransparency = 1 - a
+	XH.dotBack.BackgroundColor3 = oc
+	XH.dotBack.BackgroundTransparency = 1 - oa
+	local circ = on and style == "Circle"
+	XH.circle.Visible = circ
+	XH.circleBack.Parent.Visible = circ and S.xh_outline
+	if circ then
+		local r = (gap + len) * 2
+		XH.circle.Size = UDim2.fromOffset(r, r)
+		XH.circleBack.Parent.Size = UDim2.fromOffset(r, r)
+		XH.circleStroke.Color = c
+		XH.circleStroke.Transparency = 1 - a
+		XH.circleStroke.Thickness = th
+		XH.circleBack.Color = oc
+		XH.circleBack.Thickness = th + 2
+	end
+	local barH = (S.scr_bars and not hidden) and (S.scr_bars_size or 10) / 100 or 0
+	local cur = XH.top.Size.Y.Scale
+	local nb = cur + (barH - cur) * (1 - math.exp(-dt * 8))
+	XH.top.Size = UDim2.new(1, 0, nb, 0)
+	XH.bottom.Size = UDim2.new(1, 0, nb, 0)
+	local vc, va = D.parseColor(S.scr_vignette_color)
+	local vt = (S.scr_vignette and not hidden) and (1 - va) or 1
+	XH.vig.ImageColor3 = vc
+	XH.vig.ImageTransparency = XH.vig.ImageTransparency + (vt - XH.vig.ImageTransparency) * (1 - math.exp(-dt * 6))
+end
+end
+do
+local frame, new = D.frame, D.new
+local tween = D.tween
+
+local blur = new("BlurEffect", {Name = string.sub(HttpService:GenerateGUID(false), 1, 8), Size = 0})
+local function placeBlur()
+	local cam = workspace.CurrentCamera
+	if cam and blur.Parent ~= cam then pcall(function() blur.Parent = cam end) end
+end
+placeBlur()
+D.onCleanup(function() blur:Destroy() end)
+
+function D.applyBackdrop()
+	local open = D.menuOpen and not (D.W_STATE and D.W_STATE.minimized)
+	tween(D.L.dim, 0.35, {BackgroundTransparency = (open and S.ui_dim) and (1 - (S.ui_dim_amt or 40) / 100) or 1}, Enum.EasingStyle.Sine)
+	placeBlur()
+	tween(blur, 0.35, {Size = (open and S.ui_blur) and (S.ui_blur_size or 24) or 0}, Enum.EasingStyle.Sine)
+end
+
+local flakes = {}
+local wind, lastMouse = 0, nil
+local fxAlpha = 0
+
+local function spawnFlake(vp, anywhere)
+	local style = S.fx_style
+	local base = S.fx_size or 3
+	local sz = math.max(1, base + math.random(-1, 1))
+	if style == "Dust" then sz = math.max(1, math.floor(base * 0.6)) end
+	local f = frame({Size = UDim2.fromOffset(sz, sz), BackgroundColor3 = style == "Sparkles" and D.accent():Lerp(Color3.new(1, 1, 1), 0.35) or Color3.new(1, 1, 1), BackgroundTransparency = 1, Parent = D.L.fx})
+	D.corner(f, sz)
+	local depth = 0.4 + math.random() * 0.8
+	return {
+		f = f,
+		x = math.random() * vp.X,
+		y = anywhere and math.random() * vp.Y or -8,
+		vy = (style == "Dust" and (-6 - math.random() * 10) or (14 + math.random() * 34)) * depth,
+		vx = style == "Sparkles" and (math.random() - 0.5) * 16 or 0,
+		ph = math.random() * 6.28,
+		amp = 5 + math.random() * 14,
+		sp = 0.4 + math.random() * 0.9,
+		depth = depth,
+		base = style == "Dust" and 0.55 + math.random() * 0.3 or 0.15 + math.random() * 0.45,
+		style = style,
+	}
+end
+
+function D.resetParticles()
+	for _, fl in ipairs(flakes) do fl.f:Destroy() end
+	flakes = {}
+end
+
+function D.stepParticles(dt)
+	local style = S.fx_style
+	local active = style ~= "Off" and D.menuOpen and not D.cleanShot and not (D.W_STATE and D.W_STATE.minimized)
+	fxAlpha = fxAlpha + ((active and 1 or 0) - fxAlpha) * math.min(1, dt * 5)
+	if fxAlpha < 0.01 and not active then
+		if #flakes > 0 then D.resetParticles() end
+		return
+	end
+	local vp = D.viewport()
+	local want = active and math.floor(S.fx_density or 90) or #flakes
+	while #flakes < want do flakes[#flakes + 1] = spawnFlake(vp, true) end
+	while #flakes > want do table.remove(flakes).f:Destroy() end
+	local m = D.mouse()
+	if lastMouse and S.fx_follow ~= false then
+		local dx = (m.X - lastMouse.X) / math.max(dt, 1 / 240)
+		wind = wind + (math.clamp(dx * 0.35, -420, 420) - wind) * math.min(1, dt * 2.5)
+	else
+		wind = wind * math.max(0, 1 - dt * 2)
+	end
+	lastMouse = m
+	local speed = (S.fx_speed or 100) / 100
+	for i, fl in ipairs(flakes) do
+		if fl.style ~= style then
+			fl.f:Destroy()
+			flakes[i] = spawnFlake(vp, true)
+			fl = flakes[i]
+		end
+		fl.ph += dt * fl.sp
+		fl.y += fl.vy * dt * speed
+		fl.x += (wind * fl.depth + fl.vx) * dt
+		if fl.y > vp.Y + 10 then
+			fl.y, fl.x = -8, math.random() * vp.X
+		elseif fl.y < -12 then
+			fl.y, fl.x = vp.Y + 8, math.random() * vp.X
+		end
+		if fl.x > vp.X + 20 then fl.x -= vp.X + 40 elseif fl.x < -20 then fl.x += vp.X + 40 end
+		local tr = fl.base
+		if fl.style == "Sparkles" then tr = 0.2 + 0.7 * (0.5 + 0.5 * math.sin(fl.ph * 3)) end
+		fl.f.BackgroundTransparency = 1 - (1 - tr) * fxAlpha
+		fl.f.Position = UDim2.fromOffset(fl.x + math.sin(fl.ph) * fl.amp * (fl.style == "Snow" and 1 or 0.3), fl.y)
+	end
+end
+end
+do
+local new, frame, text, button, icon = D.new, D.frame, D.text, D.button, D.icon
+local corner, stroke, pad, vlist, hlist = D.corner, D.stroke, D.pad, D.vlist, D.hlist
+local tween = D.tween
+
+local DANGER = Color3.fromRGB(255, 99, 99)
+
+function D.openDialog(o)
+	o = o or {}
+	if D.activeDialog then D.activeDialog.close(true) end
+	D.closePops(1)
+	D.hideTip()
+	local closed = false
+	local shade = button({Name = "DialogShade", Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 1, ZIndex = 40, Parent = D.L.pop})
+	local card = new("CanvasGroup", {AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(o.Width or 380, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = T.pop, GroupTransparency = 1, ZIndex = 41, Parent = D.L.pop})
+	corner(card, M.rPop + 4)
+	stroke(card, 0.8, true)
+	D.onGlass(card, 0.08)
+	D.cardGrad(card)
+	D.halo(card)
+	D.blocker(card, 0)
+	local sc = new("UIScale", {Scale = D.uiScale() * 0.92, Parent = card})
+	local body = frame({Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 1, Parent = card})
+	pad(body, 18, 18, 16, 18)
+	vlist(body, 12)
+
+	local head = frame({Size = UDim2.new(1, 0, 0, 34), BackgroundTransparency = 1, LayoutOrder = 1, Parent = body})
+	hlist(head, 12)
+	if o.Icon ~= false then
+		local badge = frame({Size = UDim2.fromOffset(34, 34), BackgroundColor3 = D.accent(), BackgroundTransparency = 0.82, LayoutOrder = 1, Parent = head})
+		corner(badge, 10)
+		local ic = icon(o.Icon or "info", 17, D.accentText(), {AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Parent = badge})
+		D.onAccent(badge, function(a)
+			badge.BackgroundColor3 = a
+			D.iconColor(ic, D.accentText())
+		end)
+	end
+	local ttl = text({Text = o.Title or "Heads up", FontFace = D.F(D.W.semi), TextSize = 16, TextColor3 = T.text, Size = UDim2.new(0, 0, 1, 0), TextTruncate = Enum.TextTruncate.AtEnd, LayoutOrder = 2, Parent = head})
+	new("UIFlexItem", {FlexMode = Enum.UIFlexMode.Fill, Parent = ttl})
+
+	local content = o.Content or o.Text or o.Description
+	if content and content ~= "" then
+		text({Text = tostring(content), TextSize = 13, TextColor3 = T.sub, TextWrapped = true, RichText = true, LineHeight = 1.2, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, LayoutOrder = 2, Parent = body})
+	end
+
+	local input
+	if o.Input then
+		local io = type(o.Input) == "table" and o.Input or {}
+		input = new("TextBox", {Size = UDim2.new(1, 0, 0, 34), BackgroundColor3 = T.field, BorderSizePixel = 0, Text = tostring(io.Default or o.Default or ""), PlaceholderText = io.Placeholder or o.Placeholder or "", PlaceholderColor3 = T.dim, TextColor3 = T.text, FontFace = D.F(D.W.med), TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false, ClipsDescendants = true, LayoutOrder = 3, Parent = body})
+		corner(input, M.rField)
+		local ist = stroke(input, 0.88)
+		pad(input, 0, 12, 0, 12)
+		input.Focused:Connect(function() tween(ist, 0.15, {Transparency = 0.5}) end)
+		input.FocusLost:Connect(function(enter)
+			tween(ist, 0.2, {Transparency = 0.88})
+			if enter and D.activeDialog and D.activeDialog.submit then D.activeDialog.submit() end
+		end)
+	end
+
+	local foot = frame({Size = UDim2.new(1, 0, 0, 34), BackgroundTransparency = 1, LayoutOrder = 4, Parent = body})
+	hlist(foot, 8, Enum.HorizontalAlignment.Right)
+
+	local d = {}
+	function d.close(instant)
+		if closed then return end
+		closed = true
+		if D.activeDialog == d then D.activeDialog = nil end
+		shade.Active = false
+		pcall(function() card.Interactable = false end)
+		if D.mouseFree then D.mouseFree(false) end
+		if instant or S.ui_anim == false then
+			shade:Destroy()
+			card:Destroy()
+			return
+		end
+		tween(shade, 0.16, {BackgroundTransparency = 1})
+		tween(card, 0.14, {GroupTransparency = 1})
+		tween(sc, 0.16, {Scale = D.uiScale() * 0.95}, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+		task.delay(D.tweenTime(0.17), function()
+			shade:Destroy()
+			card:Destroy()
+		end)
+	end
+	d.Close = function() d.close() end
+
+	local list = o.Buttons
+	if type(list) ~= "table" or #list == 0 then
+		list = input and {{Name = "Cancel"}, {Name = o.Confirm or "Done", Callback = o.Callback}} or {{Name = "OK", Style = "Primary"}}
+	end
+	local function run(bd, isPrimary)
+		if closed then return end
+		D.play("click")
+		local value = input and input.Text or nil
+		if bd.Keep then
+			if bd.Callback then task.spawn(bd.Callback, value) end
+			return
+		end
+		if input and o.Validate and isPrimary then
+			local ok, msg = o.Validate(value)
+			if not ok then
+				D.play("error")
+				if msg then D.notify(o.Title or "Input", msg, {kind = "Warning", dur = 3}) end
+				return
+			end
+		end
+		d.close()
+		if bd.Callback then task.spawn(bd.Callback, value) end
+	end
+	for i, bd in ipairs(list) do
+		local style = bd.Style or bd.Variant or (i == #list and "Primary" or "Default")
+		local isPrimary = style == "Primary" or bd.Default == true
+		if isPrimary then d.submit = function() run(bd, true) end end
+		local primary = style == "Primary"
+		local b = button({Size = UDim2.fromOffset(0, 34), AutomaticSize = Enum.AutomaticSize.X, BackgroundColor3 = primary and D.accent() or T.field, BackgroundTransparency = 0, Text = bd.Name or bd.Title or "OK", TextSize = 13, FontFace = D.F(D.W.semi), TextColor3 = primary and D.onAccentColor() or (style == "Danger" and DANGER or T.label), LayoutOrder = i, Parent = foot})
+		corner(b, M.rField)
+		pad(b, 0, 16, 0, 16)
+		if primary then
+			D.onAccent(b, function(a)
+				b.BackgroundColor3 = a
+				b.TextColor3 = D.onAccentColor()
+			end)
+		else
+			stroke(b, 0.9)
+		end
+		b.MouseEnter:Connect(function() tween(b, 0.12, {BackgroundTransparency = primary and 0.12 or 0.35}) end)
+		b.MouseLeave:Connect(function() tween(b, 0.16, {BackgroundTransparency = 0}) end)
+		b.MouseButton1Click:Connect(function()
+			D.press(b)
+			run(bd, isPrimary)
+		end)
+	end
+
+	shade.MouseButton1Click:Connect(function()
+		if o.Dismissable == false then
+			D.play("error")
+			return
+		end
+		d.close()
+	end)
+
+	d.dismissable = o.Dismissable ~= false
+	D.activeDialog = d
+	if D.mouseFree then D.mouseFree(true) end
+	D.play("open", 1.15)
+	tween(shade, 0.22, {BackgroundTransparency = 0.55})
+	tween(card, 0.2, {GroupTransparency = 0})
+	tween(sc, 0.32, {Scale = D.uiScale()}, Enum.EasingStyle.Back)
+	if input then task.delay(0.1, function() if input.Parent then input:CaptureFocus() end end) end
+	D.onCleanup(function() if not closed then pcall(d.close, true) end end)
+	return d
+end
+end
+do
+local new, frame, text, button, icon = D.new, D.frame, D.text, D.button, D.icon
+local corner, stroke, pad, vlist, hlist = D.corner, D.stroke, D.pad, D.vlist, D.hlist
+local tween = D.tween
+
+D.TONES = {
+	Success = Color3.fromRGB(64, 214, 140),
+	Warning = Color3.fromRGB(255, 181, 71),
+	Error = Color3.fromRGB(255, 90, 90),
+	Danger = Color3.fromRGB(255, 90, 90),
+}
+
+local function sep(wrap, isLast)
+	if isLast then return end
+	frame({AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 12, 1, 0), Size = UDim2.new(1, -24, 0, 1), BackgroundColor3 = T.ink, BackgroundTransparency = 0.945, Parent = wrap})
+end
+
+local function strHash(s)
+	local h = #s
+	for i = 1, #s do h = (h * 31 + string.byte(s, i)) % 2147483647 end
+	return string.format("%x", h)
+end
+
+local imageCache = {}
+function D.resolveImage(src, cb)
+	if type(src) ~= "string" or src == "" then
+		cb(nil)
+		return
+	end
+	if string.find(src, "^rbxasset") or string.find(src, "^rbxthumb") then
+		cb(src)
+		return
+	end
+	if string.match(src, "^%d+$") then
+		cb("rbxassetid://" .. src)
+		return
+	end
+	local uid = string.match(src, "^headshot:(%d+)$")
+	if uid then
+		cb("rbxthumb://type=AvatarHeadShot&id=" .. uid .. "&w=420&h=420")
+		return
+	end
+	local pid = string.match(src, "^thumb:(%d+)$")
+	if pid then
+		cb("rbxthumb://type=GameIcon&id=" .. pid .. "&w=512&h=512")
+		return
+	end
+	if string.find(src, "^https?://") then
+		if imageCache[src] then
+			cb(imageCache[src])
+			return
+		end
+		task.spawn(function()
+			local key = "img_" .. strHash(src)
+			local asset = D.cachedImage(key) or D.fetchImage(src, key)
+			imageCache[src] = asset
+			cb(asset)
+		end)
+		return
+	end
+	cb(nil)
+end
+
+D.CUSTOM.note = function(card, spec, order, isLast, scope)
+	local wrap = frame({Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = order, Parent = card})
+	pad(wrap, 10, 12, 10, 12)
+	local tone = D.TONES[spec.style]
+	local color = tone or (spec.style == "Muted" and T.dim or (spec.style == "Info" and D.accentText() or T.sub))
+	local cur = S[spec.id]
+	local t = text({Text = type(cur) == "string" and cur or (spec.label or ""), TextSize = 12, TextColor3 = color, TextWrapped = spec.wrap ~= false, RichText = true, TextXAlignment = spec.align == "Center" and Enum.TextXAlignment.Center or (spec.align == "Right" and Enum.TextXAlignment.Right or Enum.TextXAlignment.Left), Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, LineHeight = 1.15, Parent = wrap})
+	if scope and spec.id then
+		scope[#scope + 1] = D.watch(spec.id, function(v) t.Text = tostring(v or "") end)
+	end
+	sep(wrap, isLast)
+	return {wrap = wrap}
+end
+
+D.CUSTOM.custom = function(card, spec, order, isLast, scope)
+	local fixed = tonumber(spec.height)
+	local wrap = frame({Size = UDim2.new(1, 0, 0, fixed or 0), AutomaticSize = fixed and Enum.AutomaticSize.None or Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = order, Parent = card})
+	local inner = frame({Size = UDim2.new(1, 0, fixed and 1 or 0, 0), AutomaticSize = fixed and Enum.AutomaticSize.None or Enum.AutomaticSize.Y, BackgroundTransparency = 1, Parent = wrap})
+	if spec.padded ~= false then pad(inner, 8, 12, 8, 12) end
+	local holder = inner
+	if spec.label and spec.label ~= "" then
+		vlist(inner, 6)
+		text({Text = spec.label, FontFace = D.F(D.W.semi), TextSize = 13, TextColor3 = T.text, Size = UDim2.new(1, 0, 0, 16), TextTruncate = Enum.TextTruncate.AtEnd, LayoutOrder = 1, Parent = inner})
+		holder = frame({Size = UDim2.new(1, 0, fixed and 1 or 0, fixed and -22 or 0), AutomaticSize = fixed and Enum.AutomaticSize.None or Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = 2, Parent = inner})
+	end
+	local api = D.customApi(holder, scope, spec.id)
+	if spec.build then spec.build(holder, api) end
+	sep(wrap, isLast)
+	return {wrap = wrap}
+end
+
+function D.customApi(holder, scope, flag)
+	local api = {
+		Theme = T,
+		Metrics = M,
+		Flag = flag,
+		Holder = holder,
+	}
+	function api.Accent() return D.accent() end
+	function api.Get() return flag and S[flag] end
+	function api.Set(v) if flag then D.set(flag, v) end end
+	function api.OnChanged(fn) if flag then scope[#scope + 1] = D.watch(flag, fn) end end
+	function api.OnAccent(fn) D.onAccent(holder, fn) end
+	function api.Tip(inst, textValue) D.tip(inst, textValue) end
+	function api.Section(parent, title, order) return D.section(parent, title, order or 1) end
+	function api.Connect(signal, fn)
+		local c = signal:Connect(fn)
+		scope[#scope + 1] = function() c:Disconnect() end
+		return c
+	end
+	function api.Cleanup(fn) scope[#scope + 1] = fn end
+	function api.Font(weight) return D.F(D.W[weight or "med"] or D.W.med) end
+	function api.Tween(o, t, props, style, dir) return tween(o, t, props, style, dir) end
+	function api.Icon(name, size, color, props) return icon(name, size, color, props) end
+	function api.Corner(o, r) return corner(o, r or M.rField) end
+	function api.Stroke(o, tr) return stroke(o, tr) end
+	function api.Frame(props) return frame(props) end
+	function api.Text(props) return text(props) end
+	function api.Button(props) return button(props) end
+	function api.Play(kind) D.play(kind or "click") end
+	return api
+end
+
+D.CUSTOM.spacer = function(card, spec, order)
+	return {wrap = frame({Size = UDim2.new(1, 0, 0, spec.height or 8), BackgroundTransparency = 1, LayoutOrder = order, Parent = card})}
+end
+
+D.CUSTOM.segment = function(card, spec, order, isLast, scope)
+	local sh = D.rowShell(card, spec, order, isLast)
+	local opts, longest = {}, 0
+	for _, v in ipairs(spec.opts or {}) do
+		opts[#opts + 1] = {v, tostring(v)}
+		longest = math.max(longest, #tostring(v))
+	end
+	local width = math.clamp(longest * 7 + 18, 44, 96)
+	local _, draw = D.makeSegment(sh.right, opts, function() return S[spec.id] end, function(v) D.set(spec.id, v) end, width, 3)
+	scope[#scope + 1] = D.watch(spec.id, function() draw(true) end)
+	return sh
+end
+
+D.CUSTOM.image = function(card, spec, order, isLast, scope)
+	local h = spec.height or 120
+	local wrap = frame({Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = order, Parent = card})
+	pad(wrap, 8, 8, 8, 8)
+	vlist(wrap, 6)
+	local holder = frame({Size = UDim2.new(1, 0, 0, h), BackgroundColor3 = T.field, ClipsDescendants = true, LayoutOrder = 1, Parent = wrap})
+	corner(holder, M.rField)
+	local fit = Enum.ScaleType[spec.fit or "Crop"] or Enum.ScaleType.Crop
+	local img = new("ImageLabel", {Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, BorderSizePixel = 0, ScaleType = fit, ImageTransparency = 1, Parent = holder})
+	corner(img, M.rField)
+	if spec.fit == "Tile" then img.TileSize = UDim2.fromOffset(spec.tile or 64, spec.tile or 64) end
+	if spec.tint then img.ImageColor3 = spec.tint end
+	local spin = icon("loader-circle", 18, T.dim, {AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Parent = holder})
+	if spec.caption and spec.caption ~= "" then
+		text({Text = spec.caption, TextSize = 11, TextColor3 = T.dim, TextWrapped = true, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, LayoutOrder = 2, Parent = wrap})
+	end
+	if spec.onClick then
+		local b = button({Size = UDim2.fromScale(1, 1), ZIndex = 3, Parent = holder})
+		b.MouseButton1Click:Connect(function()
+			D.play("click")
+			task.spawn(spec.onClick)
+		end)
+	end
+	local function load(src)
+		spin.Visible = src ~= nil and src ~= ""
+		D.resolveImage(src, function(asset)
+			if not img.Parent then return end
+			spin.Visible = false
+			if asset then
+				img.Image = asset
+				tween(img, 0.3, {ImageTransparency = spec.transparency or 0})
+			end
+		end)
+	end
+	load(S[spec.id] or spec.source)
+	scope[#scope + 1] = D.watch(spec.id, function(v)
+		img.ImageTransparency = 1
+		load(v)
+	end)
+	sep(wrap, isLast)
+	return {wrap = wrap}
+end
+
+D.CONSOLES = {}
+local LEVEL = {info = nil, success = "Success", warn = "Warning", warning = "Warning", error = "Error"}
+local function esc(s)
+	return (string.gsub(string.gsub(string.gsub(s, "&", "&amp;"), "<", "&lt;"), ">", "&gt;"))
+end
+function D.consoleAppend(id, msg, level, stamp)
+	local buf = D.CONSOLES[id]
+	if not buf then
+		buf = {max = 300}
+		D.CONSOLES[id] = buf
+	end
+	local line = esc(tostring(msg))
+	local tone = D.TONES[LEVEL[string.lower(tostring(level or "info"))] or ""]
+	if tone then line = '<font color="#' .. tone:ToHex() .. '">' .. line .. "</font>" end
+	if stamp ~= false then line = '<font transparency="0.45">' .. os.date("%H:%M:%S") .. "</font>  " .. line end
+	buf[#buf + 1] = line
+	while #buf > buf.max do table.remove(buf, 1) end
+	D.fire("__console:" .. id)
+end
+function D.consoleClear(id)
+	local buf = D.CONSOLES[id]
+	if buf then table.clear(buf) buf.max = 300 end
+	D.fire("__console:" .. id)
+end
+
+D.CUSTOM.console = function(card, spec, order, isLast, scope)
+	local h = spec.height or 170
+	local wrap = frame({Size = UDim2.new(1, 0, 0, h + 16), BackgroundTransparency = 1, LayoutOrder = order, Parent = card})
+	pad(wrap, 8, 8, 8, 8)
+	local sf = new("ScrollingFrame", {Size = UDim2.fromScale(1, 1), BackgroundColor3 = T.field, BorderSizePixel = 0, ScrollBarThickness = 3, ScrollBarImageColor3 = T.ink, ScrollBarImageTransparency = 0.7, CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y, ScrollingDirection = Enum.ScrollingDirection.Y, Parent = wrap})
+	corner(sf, M.rField)
+	stroke(sf, 0.93)
+	pad(sf, 8, 10, 8, 10)
+	local body = text({Text = "", RichText = true, TextWrapped = true, FontFace = D.textFont("RobotoMono"), TextSize = 12, TextColor3 = T.sub, TextYAlignment = Enum.TextYAlignment.Top, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, LineHeight = 1.1, Parent = sf})
+	local empty = text({Text = spec.empty or "Nothing logged yet.", TextSize = 12, TextColor3 = T.dim, Size = UDim2.new(1, 0, 0, 16), Parent = sf})
+	local function draw()
+		local buf = D.CONSOLES[spec.id]
+		local atBottom = sf.CanvasPosition.Y >= sf.AbsoluteCanvasSize.Y - sf.AbsoluteWindowSize.Y - 6
+		body.Text = buf and table.concat(buf, "\n") or ""
+		empty.Visible = not buf or #buf == 0
+		if atBottom then
+			task.defer(function()
+				if sf.Parent then sf.CanvasPosition = Vector2.new(0, sf.AbsoluteCanvasSize.Y) end
+			end)
+		end
+	end
+	draw()
+	scope[#scope + 1] = D.watch("__console:" .. spec.id, draw)
+	sep(wrap, isLast)
+	return {wrap = wrap}
+end
+
+D.WIDGETS = {}
+function D.refreshWidget(w)
+	local card = w.inst
+	if not card or not card.Parent then return end
+	card.Visible = w.visible ~= false and not D.cleanShot
+	w.titleL.Text = w.title
+	for i, k in ipairs(w.order) do
+		local r = w.rowsInst[k]
+		if not r then
+			local f = frame({Size = UDim2.new(1, 0, 0, 18), BackgroundTransparency = 1, Parent = w.list})
+			local kl = text({Text = k, TextSize = 12, TextColor3 = T.sub, Size = UDim2.new(0.5, 0, 1, 0), TextTruncate = Enum.TextTruncate.AtEnd, Parent = f})
+			local vl = text({AnchorPoint = Vector2.new(1, 0), Position = UDim2.fromScale(1, 0), Size = UDim2.new(0.5, 0, 1, 0), TextSize = 12, FontFace = D.F(D.W.semi), TextColor3 = T.text, TextXAlignment = Enum.TextXAlignment.Right, TextTruncate = Enum.TextTruncate.AtEnd, Parent = f})
+			r = {f = f, k = kl, v = vl}
+			w.rowsInst[k] = r
+		end
+		r.f.LayoutOrder = i
+		r.v.Text = tostring(w.values[k])
+		r.v.TextColor3 = w.colors[k] or T.text
+	end
+	for k, r in pairs(w.rowsInst) do
+		if w.values[k] == nil then
+			r.f:Destroy()
+			w.rowsInst[k] = nil
+		end
+	end
+	w.empty.Visible = #w.order == 0
+end
+
+local function buildWidget(w, root, index)
+	local kx, ky = "wg_" .. w.key .. "_x", "wg_" .. w.key .. "_y"
+	local vp = D.viewport()
+	local x, y = D.clampPos(D.META[kx] or w.x or 16, D.META[ky] or w.y or (vp.Y - 150 - (index - 1) * 130), w.width, 60)
+	local card = D.glassCard({Position = UDim2.fromOffset(x, y), Size = UDim2.fromOffset(w.width, 0), AutomaticSize = Enum.AutomaticSize.Y, Parent = root}, 0.4)
+	pad(card, 10, 12, 11, 12)
+	vlist(card, 7)
+	local hd = frame({Size = UDim2.new(1, 0, 0, 20), BackgroundTransparency = 1, LayoutOrder = 1, Parent = card})
+	local badge = frame({Size = UDim2.fromOffset(20, 20), BackgroundColor3 = D.accent(), BackgroundTransparency = 0.82, Parent = hd})
+	corner(badge, 6)
+	local ic = icon(w.icon or "layout-list", 12, D.accentText(), {AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Parent = badge})
+	D.onAccent(badge, function(a)
+		badge.BackgroundColor3 = a
+		D.iconColor(ic, D.accentText())
+	end)
+	w.titleL = text({Text = w.title, FontFace = D.F(D.W.semi), TextSize = 13, TextColor3 = T.text, Position = UDim2.fromOffset(28, 0), Size = UDim2.new(1, -28, 1, 0), TextTruncate = Enum.TextTruncate.AtEnd, Parent = hd})
+	w.list = frame({Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, LayoutOrder = 2, Parent = card})
+	vlist(w.list, 3)
+	w.empty = text({Text = w.emptyText or "No data", TextSize = 12, TextColor3 = T.dim, Size = UDim2.new(1, 0, 0, 16), LayoutOrder = -1, Parent = w.list})
+	w.inst = card
+	w.rowsInst = {}
+	D.draggable(card, kx, ky)
+	D.refreshWidget(w)
+end
+
+function D.buildWidgets(root)
+	for i, w in ipairs(D.WIDGETS) do buildWidget(w, root, i) end
+	if D.buildUIButton then D.buildUIButton(root) end
+end
+
+local UB = {}
+D.on(RunService.RenderStepped, function()
+	local b = UB.btn
+	if not UB.pressing or not b or not b.Parent then return end
+	local m = D.mouse()
+	local d = m - UB.start
+	if not UB.moved and d.Magnitude > 6 then UB.moved = true end
+	if UB.moved then
+		local vp = D.viewport()
+		local s = D.vsize(b)
+		b.Position = UDim2.fromOffset(math.clamp(UB.origin.X + d.X, 0, vp.X - s.X), math.clamp(UB.origin.Y + d.Y, 0, vp.Y - s.Y))
+	end
+end)
+
+function D.buildUIButton(root)
+	if S.ui_button == false or D.cleanShot then return end
+	local vp = D.viewport()
+	local x, y = D.clampPos(D.META.ub_x or math.floor(vp.X / 2 - 23), D.META.ub_y or 10, 46, 46)
+	local b = button({Position = UDim2.fromOffset(x, y), Size = UDim2.fromOffset(46, 46), BackgroundColor3 = T.win, BackgroundTransparency = 0, Parent = root})
+	D.tip(b, "Open or close the menu. Drag to move.")
+	corner(b, 23)
+	stroke(b, 0.7, true)
+	D.onGlass(b, 0.3)
+	local mb = type(D.CONFIG.UIButton) == "table" and D.CONFIG.UIButton or {}
+	if mb.Text then
+		b.Size = UDim2.fromOffset(0, 40)
+		b.AutomaticSize = Enum.AutomaticSize.X
+		pad(b, 0, 16, 0, 16)
+		b.Text = tostring(mb.Text)
+		b.TextColor3 = T.text
+		b.TextSize = 14
+		b.FontFace = D.F(D.W.semi)
+	elseif D.CONFIG.Logo and not mb.Icon then
+		local mark = D.logoMark(b, 28, 1)
+		mark.AnchorPoint = Vector2.new(0.5, 0.5)
+		mark.Position = UDim2.fromScale(0.5, 0.5)
+	else
+		icon(mb.Icon or "layout-grid", 20, T.text, {AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Parent = b})
+	end
+	UB.btn = b
+	b.InputBegan:Connect(function(i)
+		if i.UserInputType ~= Enum.UserInputType.MouseButton1 and i.UserInputType ~= Enum.UserInputType.Touch then return end
+		UB.pressing, UB.moved = true, false
+		UB.start = D.mouse()
+		UB.origin = Vector2.new(b.Position.X.Offset, b.Position.Y.Offset)
+	end)
+	b.InputEnded:Connect(function(i)
+		if i.UserInputType ~= Enum.UserInputType.MouseButton1 and i.UserInputType ~= Enum.UserInputType.Touch then return end
+		if not UB.pressing then return end
+		UB.pressing = false
+		if UB.moved then
+			D.META.ub_x, D.META.ub_y = b.Position.X.Offset, b.Position.Y.Offset
+			D.writeMeta()
+		else
+			D.press(b)
+			D.setMenu(not D.menuOpen)
+		end
+	end)
+end
+end
+do
+local saved = {}
+local function override(obj, prop, value)
+	local key = obj
+	saved[key] = saved[key] or {}
+	if saved[key][prop] == nil then
+		local ok, cur = pcall(function() return obj[prop] end)
+		if not ok then return end
+		saved[key][prop] = {cur}
+	end
+	pcall(function()
+		if obj[prop] ~= value then obj[prop] = value end
+	end)
+end
+local function release(obj, prop)
+	local s = saved[obj]
+	if s and s[prop] then
+		local v = s[prop][1]
+		s[prop] = nil
+		pcall(function() obj[prop] = v end)
+	end
+end
+local function releaseAllExcept(keepSet)
+	for obj, props in pairs(saved) do
+		for prop in pairs(props) do
+			if not (keepSet[obj] and keepSet[obj][prop]) then release(obj, prop) end
+		end
+	end
+end
+
+local grade = Instance.new("ColorCorrectionEffect")
+grade.Name = string.sub(HttpService:GenerateGUID(false), 1, 6)
+grade.Enabled = false
+grade.Parent = Lighting
+D.OWN_EFFECTS = D.OWN_EFFECTS or {}
+D.OWN_EFFECTS[grade] = true
+D.onCleanup(function() grade:Destroy() end)
+
+function D.applyWorld()
+	local want = {}
+	local function set(obj, prop, v)
+		want[obj] = want[obj] or {}
+		want[obj][prop] = true
+		override(obj, prop, v)
+	end
+	if S.w_fullbright then
+		set(Lighting, "Brightness", 2)
+		set(Lighting, "ClockTime", 14)
+		set(Lighting, "GlobalShadows", false)
+		set(Lighting, "OutdoorAmbient", Color3.fromRGB(128, 128, 128))
+		set(Lighting, "Ambient", Color3.fromRGB(178, 178, 178))
+	end
+	if S.w_time then set(Lighting, "ClockTime", S.w_time_val or 14) end
+	if S.w_ambient then
+		local c = D.col("w_ambient_color")
+		set(Lighting, "Ambient", c)
+		set(Lighting, "OutdoorAmbient", c)
+	end
+	if S.w_bright then set(Lighting, "Brightness", S.w_bright_val or 2) end
+	if S.w_shadows == false then set(Lighting, "GlobalShadows", false) end
+	if S.w_nofog then
+		set(Lighting, "FogEnd", 1e6)
+		set(Lighting, "FogStart", 1e6)
+		for _, a in ipairs(Lighting:GetChildren()) do
+			if a:IsA("Atmosphere") then
+				set(a, "Density", 0)
+				set(a, "Haze", 0)
+			end
+		end
+	elseif S.w_fog then
+		set(Lighting, "FogColor", D.col("w_fog_color"))
+		set(Lighting, "FogEnd", S.w_fog_end or 1000)
+		set(Lighting, "FogStart", 0)
+	end
+	local cam = workspace.CurrentCamera
+	for _, parent in ipairs({Lighting, cam}) do
+		if parent then
+			for _, fx in ipairs(parent:GetChildren()) do
+				if fx:IsA("BloomEffect") and S.w_nobloom then set(fx, "Enabled", false) end
+				if fx:IsA("SunRaysEffect") and S.w_norays then set(fx, "Enabled", false) end
+				if fx:IsA("DepthOfFieldEffect") and S.w_nodof then set(fx, "Enabled", false) end
+			end
+		end
+	end
+	releaseAllExcept(want)
+	grade.Enabled = S.w_grade == true
+	grade.Contrast = S.w_contrast or 0
+	grade.Saturation = S.w_saturation or 0
+	grade.Brightness = S.w_exposure or 0
+	grade.TintColor = D.col("w_tint")
+end
+
+D.onCleanup(function()
+	for obj, props in pairs(saved) do
+		for prop in pairs(props) do release(obj, prop) end
+	end
+end)
+
+local defaultCap
+function D.applyFps()
+	if not setfpscap then return end
+	if S.fps_unlock then
+		if defaultCap == nil then
+			defaultCap = 60
+			if getfpscap then
+				local ok, v = pcall(getfpscap)
+				if ok and type(v) == "number" then defaultCap = v end
+			end
+		end
+		local cap = S.fps_cap or 240
+		pcall(setfpscap, cap >= 540 and 0 or cap)
+	elseif defaultCap ~= nil then
+		pcall(setfpscap, defaultCap)
+		defaultCap = nil
+	end
+end
+D.onCleanup(function()
+	if defaultCap ~= nil and setfpscap then pcall(setfpscap, defaultCap) end
+end)
+
+function D.apply3d()
+	pcall(function() RunService:Set3dRenderingEnabled(not S.perf_no3d) end)
+end
+D.onCleanup(function() pcall(function() RunService:Set3dRenderingEnabled(true) end) end)
+
+D.on(LP.Idled, function()
+	if not S.anti_afk then return end
+	pcall(function()
+		local vu = cloneref(game:GetService("VirtualUser"))
+		vu:CaptureController()
+		vu:ClickButton2(Vector2.new())
+	end)
+end)
+
+local rejoining = false
+D.on(GuiService.ErrorMessageChanged, function(msg)
+	if not S.auto_rejoin or rejoining or not msg or msg == "" then return end
+	rejoining = true
+	task.delay(S.auto_rejoin_delay or 5, function()
+		pcall(function() TeleportService:Teleport(game.PlaceId, LP) end)
+		rejoining = false
+	end)
+end)
+end
+do
+local CAS = cloneref(game:GetService("ContextActionService"))
+local UGS = UserSettings():GetService("UserGameSettings")
+
+local keep = {}
+local function patch(owner, obj, prop, value)
+	local o = keep[owner]
+	if not o then
+		o = {}
+		keep[owner] = o
+	end
+	local p = o[obj]
+	if not p then
+		p = {}
+		o[obj] = p
+	end
+	if p[prop] == nil then
+		local ok, cur = pcall(function() return obj[prop] end)
+		if not ok then return end
+		p[prop] = {cur}
+	end
+	pcall(function()
+		if obj[prop] ~= value then obj[prop] = value end
+	end)
+end
+local function unpatch(owner)
+	local o = keep[owner]
+	if not o then return end
+	keep[owner] = nil
+	for obj, props in pairs(o) do
+		for prop, v in pairs(props) do
+			pcall(function() obj[prop] = v[1] end)
+		end
+	end
+end
+D.patch, D.unpatch = patch, unpatch
+
+D.INIT = D.INIT or {}
+local function init(fn) D.INIT[#D.INIT + 1] = fn end
+
+local function character()
+	local ch = LP.Character
+	local hum = ch and ch:FindFirstChildOfClass("Humanoid")
+	return ch, hum
+end
+
+local stepName = string.sub(HttpService:GenerateGUID(false), 1, 10)
+local steadyName = string.sub(HttpService:GenerateGUID(false), 1, 10)
+local sinkName = string.sub(HttpService:GenerateGUID(false), 1, 10)
+
+local fovActive, baseFov, zoomT = false, nil, 0
+local wsActive, wsPrevFov, wsPrevMode = false, nil, nil
+local fc = {on = false, yaw = 0, pitch = 0, pos = Vector3.zero}
+local thirdWasOn = false
+local rayParams = RaycastParams.new()
+rayParams.FilterType = Enum.RaycastFilterType.Exclude
+
+local fcModal = D.button({Name = "F", Size = UDim2.fromOffset(1, 1), Position = UDim2.fromOffset(-10, -10), Modal = false, Parent = D.gui})
+local function stopFreecam()
+	if not fc.on then return end
+	fc.on = false
+	pcall(function() CAS:UnbindAction(sinkName) end)
+	unpatch("freecam")
+	fcModal.Modal = false
+	if fc.mouseWas then pcall(function() UIS.MouseBehavior = fc.mouseWas end) end
+	if fc.iconWas == false and not D.menuOpen then pcall(function() UIS.MouseIconEnabled = false end) end
+	fc.mouseWas, fc.iconWas = nil, nil
+end
+
+local function startFreecam()
+	local c = workspace.CurrentCamera
+	if fc.on or not c then return end
+	fc.on = true
+	fc.mouseWas = UIS.MouseBehavior
+	fc.iconWas = UIS.MouseIconEnabled
+	local cf = c.CFrame
+	fc.pos = cf.Position
+	local rx, ry = cf:ToEulerAnglesYXZ()
+	fc.pitch, fc.yaw = rx, ry
+	patch("freecam", c, "CameraType", Enum.CameraType.Scriptable)
+	pcall(function()
+		CAS:BindActionAtPriority(sinkName, function() return Enum.ContextActionResult.Sink end, false, Enum.ContextActionPriority.High.Value + 50,
+			Enum.PlayerActions.CharacterForward, Enum.PlayerActions.CharacterBackward, Enum.PlayerActions.CharacterLeft, Enum.PlayerActions.CharacterRight, Enum.PlayerActions.CharacterJump)
+	end)
+end
+
+D.on(UIS.InputChanged, function(input, gp)
+	if fc.on and input.UserInputType == Enum.UserInputType.MouseWheel and not gp and not D.menuOpen then
+		local sp = S.cam_free_speed or 40
+		sp = math.clamp(math.floor(sp * (input.Position.Z > 0 and 1.15 or 1 / 1.15) + 0.5), 5, 200)
+		if sp ~= S.cam_free_speed then D.set("cam_free_speed", sp) end
+		return
+	end
+	if not fc.on or input.UserInputType ~= Enum.UserInputType.MouseMovement then return end
+	if not UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then return end
+	local d = input.Delta
+	fc.yaw -= d.X * 0.0045
+	fc.pitch = math.clamp(fc.pitch - d.Y * 0.0045, -1.45, 1.45)
+end)
+
+local function freecamMouse()
+	local free = fc.on and S.cam_free_mouse ~= false and not D.menuOpen
+	local look = free and UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
+	local wantModal = free and not look
+	if fcModal.Modal ~= wantModal then fcModal.Modal = wantModal end
+	if not free then return end
+	local want = look and Enum.MouseBehavior.LockCurrentPosition or Enum.MouseBehavior.Default
+	if UIS.MouseBehavior ~= want then UIS.MouseBehavior = want end
+	if not UIS.MouseIconEnabled then UIS.MouseIconEnabled = true end
+end
+
+local function freecamStep(dt, c)
+	freecamMouse()
+	if UIS:GetFocusedTextBox() then return end
+	local move = Vector3.zero
+	if UIS:IsKeyDown(Enum.KeyCode.W) then move += Vector3.new(0, 0, -1) end
+	if UIS:IsKeyDown(Enum.KeyCode.S) then move += Vector3.new(0, 0, 1) end
+	if UIS:IsKeyDown(Enum.KeyCode.A) then move += Vector3.new(-1, 0, 0) end
+	if UIS:IsKeyDown(Enum.KeyCode.D) then move += Vector3.new(1, 0, 0) end
+	if UIS:IsKeyDown(Enum.KeyCode.E) then move += Vector3.new(0, 1, 0) end
+	if UIS:IsKeyDown(Enum.KeyCode.Q) then move += Vector3.new(0, -1, 0) end
+	local rot = CFrame.fromEulerAnglesYXZ(fc.pitch, fc.yaw, 0)
+	if move.Magnitude > 0 then
+		local speed = S.cam_free_speed or 40
+		if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then speed *= S.cam_free_boost or 3 end
+		fc.pos += rot:VectorToWorldSpace(move.Unit) * speed * dt
+	end
+	c.CFrame = CFrame.new(fc.pos) * rot
+end
+
+local function thirdStep(c)
+	local ch = LP.Character
+	local head = ch and (ch:FindFirstChild("Head") or ch.PrimaryPart)
+	if not head then return end
+	local rot = c.CFrame - c.CFrame.Position
+	local pivot = head.Position + Vector3.new(0, S.cam_third_height or 1.5, 0)
+	local target = pivot + rot:VectorToWorldSpace(Vector3.new(S.cam_third_side or 1.5, 0, S.cam_third_dist or 10))
+	if S.cam_third_collide ~= false then
+		rayParams.FilterDescendantsInstances = {ch}
+		local dir = target - pivot
+		local hit = workspace:Raycast(pivot, dir, rayParams)
+		if hit then target = hit.Position - dir.Unit * 0.6 end
+	end
+	c.CFrame = CFrame.new(target) * rot
+	local hideAcc = S.ch_hideacc == true
+	for _, p in ipairs(ch:GetDescendants()) do
+		if p:IsA("BasePart") then
+			local want = (hideAcc and p:FindFirstAncestorOfClass("Accessory")) and 1 or 0
+			if p.LocalTransparencyModifier ~= want then p.LocalTransparencyModifier = want end
+		end
+	end
+end
+
+local function cameraStep(dt)
+	local c = workspace.CurrentCamera
+	if not c then return end
+	if S.cam_freecam then
+		if not fc.on then startFreecam() end
+		freecamStep(dt, c)
+	elseif fc.on then
+		stopFreecam()
+	end
+	if S.cam_third and not fc.on then
+		thirdWasOn = true
+		thirdStep(c)
+	elseif thirdWasOn then
+		thirdWasOn = false
+	end
+	zoomT += ((S.cam_zoom and 1 or 0) - zoomT) * math.min(1, dt * 14)
+	if zoomT < 0.002 and not S.cam_zoom then zoomT = 0 end
+	if S.cam_fov or zoomT > 0 then
+		if not fovActive then
+			fovActive = true
+			baseFov = c.FieldOfView
+		end
+		local base = S.cam_fov and (S.cam_fov_val or 90) or baseFov
+		c.FieldOfView = base + ((S.cam_zoom_val or 25) - base) * zoomT
+	elseif fovActive then
+		fovActive = false
+		c.FieldOfView = baseFov
+	end
+	-- World stretch: opt-in camera perspective change. Disabled by default and
+	-- fully restored when turned off or when the menu ejects.
+	local ws = S.ws_on and not D.cleanShot
+	if ws then
+		if not wsActive then
+			wsActive = true
+			wsPrevFov = c.FieldOfView
+			wsPrevMode = c.FieldOfViewMode
+		end
+		local base = tonumber(S.ws_fov) or 90
+		local ar = D.wsRatio()
+		if ar and ar > 0 then
+			local real = D.RES.real
+			local sr = (real.Y > 0) and (real.X / real.Y) or 1
+			if S.ws_mode == "Stretch" then
+				base = math.clamp(base * (ar / math.max(sr, 0.01)), 15, 140)
+			elseif S.ws_mode == "Crop" then
+				base = math.clamp(base * (sr / math.max(ar, 0.01)), 15, 140)
+			end
+		end
+		pcall(function() c.FieldOfViewMode = Enum.FieldOfViewMode[S.ws_fov_mode or "MaxAxis"] end)
+		if c.FieldOfView ~= base then c.FieldOfView = base end
+	elseif wsActive then
+		wsActive = false
+		if wsPrevFov then c.FieldOfView = wsPrevFov end
+		if wsPrevMode then pcall(function() c.FieldOfViewMode = wsPrevMode end) end
+		wsPrevFov, wsPrevMode = nil, nil
+	end
+end
+
+RunService:BindToRenderStep(stepName, Enum.RenderPriority.Last.Value + 2, function(dt)
+	if D.alive then pcall(cameraStep, dt) end
+end)
+RunService:BindToRenderStep(steadyName, Enum.RenderPriority.Camera.Value - 1, function()
+	if not S.cam_nobob then return end
+	local _, hum = character()
+	if hum and hum.CameraOffset ~= Vector3.zero then
+		patch("steady", hum, "CameraOffset", Vector3.zero)
+		hum.CameraOffset = Vector3.zero
+	end
+end)
+D.onCleanup(function()
+	pcall(function() RunService:UnbindFromRenderStep(stepName) end)
+	pcall(function() RunService:UnbindFromRenderStep(steadyName) end)
+	stopFreecam()
+	local c = workspace.CurrentCamera
+	if fovActive and c and baseFov then c.FieldOfView = baseFov end
+	if wsActive and c then
+		if wsPrevFov then c.FieldOfView = wsPrevFov end
+		if wsPrevMode then pcall(function() c.FieldOfViewMode = wsPrevMode end) end
+	end
+end)
+
+local function applyZoomLimit()
+	if S.cam_unlockzoom then
+		patch("zoom", LP, "CameraMaxZoomDistance", 1000)
+		patch("zoom", LP, "CameraMinZoomDistance", 0.5)
+	else
+		unpatch("zoom")
+	end
+end
+
+local PACKS = {
+	Ninja = {idle = {656117400, 656118341}, walk = {656121766}, run = {656118852}, jump = {656117878}, fall = {656115606}, climb = {656114359}},
+	Robot = {idle = {616088211, 616089559}, walk = {616095330}, run = {616091570}, jump = {616090535}, fall = {616087089}, climb = {616086039}},
+	Stylish = {idle = {616136790, 616138447}, walk = {616146177}, run = {616140816}, jump = {616139451}, fall = {616134815}, climb = {616133594}},
+	Superhero = {idle = {616111295, 616113536}, walk = {616122287}, run = {616117076}, jump = {616115533}, fall = {616108001}, climb = {616104706}},
+	Zombie = {idle = {616158929, 616160636}, walk = {616168032}, run = {616163682}, jump = {616161997}, fall = {616157476}, climb = {616156119}},
+	Cartoony = {idle = {742637544, 742638445}, walk = {742640026}, run = {742638842}, jump = {742637942}, fall = {742637151}, climb = {742636889}},
+	Mage = {idle = {707742142, 707855907}, walk = {707897309}, run = {707861613}, jump = {707853694}, fall = {707829716}, climb = {707826056}},
+}
+
+local function restartAnimate(ch, hum)
+	local animate = ch:FindFirstChild("Animate")
+	local animator = hum:FindFirstChildOfClass("Animator")
+	if animator then
+		for _, t in ipairs(animator:GetPlayingAnimationTracks()) do pcall(function() t:Stop(0) end) end
+	end
+	if animate and animate:IsA("LocalScript") then
+		pcall(function()
+			animate.Disabled = true
+			animate.Disabled = false
+		end)
+	end
+end
+
+local function applyAnims(silentFail)
+	local ch, hum = character()
+	if not ch or not hum then return end
+	local pack = PACKS[S.ch_anim]
+	local hadPatch = keep.anim ~= nil
+	unpatch("anim")
+	if pack then
+		if hum.RigType ~= Enum.HumanoidRigType.R15 then
+			if not silentFail then D.notify("Animation Pack", "Packs need an R15 character.", {kind = "Warning", dur = 3}) end
+			return
+		end
+		local animate = ch:FindFirstChild("Animate")
+		if not animate then
+			if not silentFail then D.notify("Animation Pack", "This game uses custom animations.", {kind = "Warning", dur = 3}) end
+			return
+		end
+		for slot, ids in pairs(pack) do
+			local folder = animate:FindFirstChild(slot)
+			if folder then
+				local i = 0
+				for _, a in ipairs(folder:GetChildren()) do
+					if a:IsA("Animation") then
+						i += 1
+						local id = ids[math.min(i, #ids)]
+						patch("anim", a, "AnimationId", "rbxassetid://" .. id)
+					end
+				end
+			end
+		end
+		restartAnimate(ch, hum)
+	elseif hadPatch then
+		restartAnimate(ch, hum)
+	end
+end
+
+local function bodyParts(ch)
+	local out = {}
+	for _, p in ipairs(ch:GetDescendants()) do
+		if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" and not p:FindFirstAncestorOfClass("Accessory") and not p:FindFirstAncestorOfClass("Tool") then
+			out[#out + 1] = p
+		end
+	end
+	return out
+end
+
+local function applyTint()
+	unpatch("tint")
+	if not S.ch_tint then return end
+	local ch = LP.Character
+	if not ch then return end
+	local c = D.col("ch_tint_color")
+	for _, p in ipairs(bodyParts(ch)) do patch("tint", p, "Color", c) end
+end
+
+local function applyNameTag()
+	unpatch("nametag")
+	if not S.ch_hidename then return end
+	local ch, hum = character()
+	if not ch then return end
+	if hum then patch("nametag", hum, "DisplayDistanceType", Enum.HumanoidDisplayDistanceType.None) end
+	for _, g in ipairs(ch:GetDescendants()) do
+		if g:IsA("BillboardGui") then patch("nametag", g, "Enabled", false) end
+	end
+end
+
+local accWasOn = false
+local function setAccessories(on)
+	local ch = LP.Character
+	if not ch then return end
+	for _, a in ipairs(ch:GetChildren()) do
+		if a:IsA("Accessory") then
+			for _, p in ipairs(a:GetDescendants()) do
+				if p:IsA("BasePart") then p.LocalTransparencyModifier = on and 1 or 0 end
+			end
+		end
+	end
+end
+D.on(RunService.Heartbeat, function()
+	local on = S.ch_hideacc == true
+	if not on and not accWasOn then return end
+	setAccessories(on)
+	accWasOn = on
+end)
+
+local baseSens
+local function applySens()
+	local m = S.in_sens or 1
+	if math.abs(m - 1) > 0.001 then
+		if not baseSens then baseSens = UGS.MouseSensitivity end
+		pcall(function() UGS.MouseSensitivity = math.clamp(baseSens * m, 0.01, 10) end)
+	elseif baseSens then
+		pcall(function() UGS.MouseSensitivity = baseSens end)
+		baseSens = nil
+	end
+end
+D.onCleanup(function()
+	if baseSens then pcall(function() UGS.MouseSensitivity = baseSens end) end
+end)
+
+local function applyInvert()
+	if S.in_invert then patch("invert", UGS, "CameraYInverted", true) else unpatch("invert") end
+end
+
+local PARTICLES = {ParticleEmitter = true, Trail = true, Beam = true, Smoke = true, Fire = true, Sparkles = true}
+local function potatoItem(d)
+	if d:IsA("BasePart") then
+		if S.potato_shadows ~= false and d.CastShadow then patch("potato", d, "CastShadow", false) end
+		if S.potato_materials ~= false and d.Material ~= Enum.Material.SmoothPlastic and d.Material ~= Enum.Material.Neon and d.Material ~= Enum.Material.Glass then
+			patch("potato", d, "Material", Enum.Material.SmoothPlastic)
+			if d.Reflectance ~= 0 then patch("potato", d, "Reflectance", 0) end
+		end
+	elseif S.potato_textures ~= false and (d:IsA("Decal") or d:IsA("Texture")) then
+		if d.Transparency < 1 then patch("potato", d, "Transparency", 1) end
+	elseif S.potato_particles ~= false and PARTICLES[d.ClassName] then
+		patch("potato", d, "Enabled", false)
+	elseif S.potato_particles ~= false and d:IsA("Explosion") then
+		patch("potato", d, "Visible", false)
+	end
+end
+
+local potatoConn
+local potatoToken = 0
+local function applyPotato()
+	potatoToken += 1
+	local token = potatoToken
+	if potatoConn then
+		potatoConn:Disconnect()
+		potatoConn = nil
+	end
+	unpatch("potato")
+	if not S.perf_potato then return end
+	if S.potato_quality ~= false then
+		pcall(function() patch("potato", settings().Rendering, "QualityLevel", Enum.QualityLevel.Level01) end)
+	end
+	if S.potato_shadows ~= false then patch("potato", Lighting, "GlobalShadows", false) end
+	if S.potato_effects ~= false then
+		for _, fx in ipairs(Lighting:GetChildren()) do
+			if fx:IsA("PostEffect") and not (D.OWN_EFFECTS and D.OWN_EFFECTS[fx]) and not fx:IsA("ColorCorrectionEffect") then
+				patch("potato", fx, "Enabled", false)
+			elseif fx:IsA("Atmosphere") then
+				patch("potato", fx, "Density", 0)
+				patch("potato", fx, "Haze", 0)
+				patch("potato", fx, "Glare", 0)
+			end
+		end
+	end
+	if S.potato_terrain ~= false then
+		local t = workspace:FindFirstChildOfClass("Terrain")
+		if t then
+			pcall(function() patch("potato", t, "Decoration", false) end)
+			patch("potato", t, "WaterWaveSize", 0)
+			patch("potato", t, "WaterWaveSpeed", 0)
+			patch("potato", t, "WaterReflectance", 0)
+		end
+	end
+	potatoConn = workspace.DescendantAdded:Connect(function(d)
+		if token == potatoToken then pcall(potatoItem, d) end
+	end)
+	task.spawn(function()
+		local list = workspace:GetDescendants()
+		for i, d in ipairs(list) do
+			if token ~= potatoToken or not D.alive then return end
+			pcall(potatoItem, d)
+			if i % 1500 == 0 then task.wait() end
+		end
+	end)
+end
+D.onCleanup(function()
+	potatoToken += 1
+	if potatoConn then potatoConn:Disconnect() end
+end)
+
+D.on(Players.PlayerAdded, function(p)
+	if S.ses_joins then
+		D.notify(p.DisplayName, "joined the server", {icon = "user-plus", compact = true, dur = 3, sound = "none"})
+	elseif S.ses_friends then
+		task.spawn(function()
+			local ok, f = pcall(function() return LP:IsFriendsWith(p.UserId) end)
+			if ok and f and D.alive then D.notify(p.DisplayName, "Your friend joined", {icon = "heart", dur = 4}) end
+		end)
+	end
+end)
+D.on(Players.PlayerRemoving, function(p)
+	if S.ses_joins then D.notify(p.DisplayName, "left the server", {icon = "user-minus", compact = true, dur = 3, sound = "none"}) end
+end)
+
+local function logChat(name, msg)
+	if not S.chat_log or not D.alive then return end
+	D.consoleAppend("chat_console", name .. ": " .. msg, "info", true)
+end
+pcall(function()
+	local TCS = game:GetService("TextChatService")
+	D.on(TCS.MessageReceived, function(m)
+		local src = m.TextSource
+		local plr = src and Players:GetPlayerByUserId(src.UserId)
+		logChat(plr and plr.DisplayName or "System", m.Text or "")
+	end)
+end)
+for _, p in ipairs(Players:GetPlayers()) do
+	D.on(p.Chatted, function(msg) if game:GetService("TextChatService").ChatVersion == Enum.ChatVersion.LegacyChatService then logChat(p.DisplayName, msg) end end)
+end
+D.on(Players.PlayerAdded, function(p)
+	D.on(p.Chatted, function(msg) if game:GetService("TextChatService").ChatVersion == Enum.ChatVersion.LegacyChatService then logChat(p.DisplayName, msg) end end)
+end)
+
+D.ACTIONS = D.ACTIONS or {}
+D.ACTIONS.act_chat_clear = function() D.consoleClear("chat_console") end
+
+D.onCleanup(function()
+	local hadAnim = keep.anim ~= nil
+	for owner in pairs(keep) do unpatch(owner) end
+	if accWasOn then setAccessories(false) end
+	if hadAnim then
+		local ch, hum = character()
+		if ch and hum then restartAnimate(ch, hum) end
+	end
+end)
+
+init(function()
+	D.watch("cam_unlockzoom", applyZoomLimit)
+	D.watch("cam_nobob", function(v) if not v then unpatch("steady") end end)
+	D.watch("ch_anim", function() applyAnims(false) end)
+	D.watch("ch_tint", applyTint)
+	D.watch("ch_tint_color", applyTint)
+	D.watch("ch_hidename", applyNameTag)
+	D.watch("ch_hideacc", function(v)
+		if not v then
+			setAccessories(false)
+			accWasOn = false
+		end
+	end)
+	D.watch("in_sens", applySens)
+	D.watch("in_invert", applyInvert)
+	for _, k in ipairs({"perf_potato", "potato_quality", "potato_shadows", "potato_materials", "potato_textures", "potato_particles", "potato_effects", "potato_terrain"}) do
+		D.watch(k, function()
+			if k == "perf_potato" or S.perf_potato then applyPotato() end
+		end)
+	end
+	D.on(LP.CharacterAdded, function(ch)
+		ch:WaitForChild("Humanoid", 10)
+		task.wait(0.5)
+		if not D.alive then return end
+		unpatch("steady")
+		if S.ch_anim ~= "Default" then applyAnims(true) end
+		applyTint()
+		applyNameTag()
+	end)
+	applyZoomLimit()
+	if S.ch_anim ~= "Default" then applyAnims(true) end
+	applyTint()
+	applyNameTag()
+	applySens()
+	applyInvert()
+	applyPotato()
+end)
+end
+do
+D.ACTIONS = D.ACTIONS or {}
+local A = D.ACTIONS
+local set = D.set
+
+function D.runAction(id)
+	local fn = A[id]
+	if not fn then return end
+	task.spawn(function()
+		local ok, err = pcall(fn)
+		if not ok then
+			D.notify("Something went wrong", tostring(err), {icon = "triangle-alert", sound = "error"})
+		end
+	end)
+end
+
+local function copy(str, what)
+	if setclipboard then
+		setclipboard(str)
+		D.notify("Copied", what or str, {icon = "copy", dur = 2.5})
+	else
+		D.notify("Clipboard unavailable", "Your executor can't copy to the clipboard.", {icon = "triangle-alert", sound = "error"})
+	end
+end
+
+local function myCFrame()
+	local ch = LP.Character
+	if ch then
+		local ok, cf = pcall(function() return ch:GetPivot() end)
+		if ok and cf then return cf end
+	end
+	return workspace.CurrentCamera.CFrame
+end
+
+A.act_notify_test = function()
+	D.notify(D.CONFIG.Title or "arvn", "Sample notification. Change the style in Settings, Overlays.", {icon = "bell"})
+end
+A.act_copy_pos = function()
+	local p = myCFrame().Position
+	copy(string.format("%.2f, %.2f, %.2f", p.X, p.Y, p.Z))
+end
+A.act_copy_cf = function()
+	local c = {myCFrame():GetComponents()}
+	for i, v in ipairs(c) do c[i] = string.format("%.3f", v) end
+	copy("CFrame.new(" .. table.concat(c, ", ") .. ")", "CFrame copied")
+end
+A.act_clean_shot = function()
+	D.cleanShot = true
+	D.setMenu(false)
+	D.refreshOverlays()
+	task.wait(5)
+	D.cleanShot = false
+	D.refreshOverlays()
+	D.notify("Clean Screenshot", "Overlays are back.", {icon = "camera", dur = 2})
+end
+A.act_copy_job = function() copy(game.JobId, "Job ID copied") end
+A.act_copy_join = function()
+	copy(string.format('game:GetService("TeleportService"):TeleportToPlaceInstance(%d, "%s", game:GetService("Players").LocalPlayer)', game.PlaceId, game.JobId), "Join script copied")
+end
+A.act_rejoin = function()
+	D.notify("Rejoining", "Teleporting back into this server...", {icon = "refresh-cw"})
+	if #Players:GetPlayers() <= 1 then
+		TeleportService:Teleport(game.PlaceId, LP)
+	else
+		TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LP)
+	end
+end
+
+local function servers()
+	local ok, res = pcall(function()
+		return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+	end)
+	if not ok or type(res) ~= "table" or type(res.data) ~= "table" then return nil end
+	local out = {}
+	for _, s in ipairs(res.data) do
+		if s.id ~= game.JobId and (s.playing or 0) < (s.maxPlayers or 0) then out[#out + 1] = s end
+	end
+	return out
+end
+A.act_join_job = function()
+	local id = string.gsub(tostring(S.srv_join or ""), "%s", "")
+	if not string.match(id, "^%x+%-%x+%-%x+%-%x+%-%x+$") then
+		D.notify("Join Server", "That is not a valid Job ID.", {kind = "Warning"})
+		return
+	end
+	D.notify("Join Server", "Teleporting...", {icon = "log-in"})
+	TeleportService:TeleportToPlaceInstance(game.PlaceId, id, LP)
+end
+A.act_hop = function()
+	local list = servers()
+	if not list or #list == 0 then
+		D.notify("Server Hop", "No other open servers found.", {icon = "triangle-alert", sound = "error"})
+		return
+	end
+	D.notify("Server Hop", "Joining another server...", {icon = "shuffle"})
+	TeleportService:TeleportToPlaceInstance(game.PlaceId, list[math.random(1, #list)].id, LP)
+end
+A.act_small = function()
+	local list = servers()
+	if not list or #list == 0 then
+		D.notify("Smallest Server", "No other open servers found.", {icon = "triangle-alert", sound = "error"})
+		return
+	end
+	table.sort(list, function(a, b) return (a.playing or 0) < (b.playing or 0) end)
+	D.notify("Smallest Server", "Joining a server with " .. tostring(list[1].playing or 0) .. ((list[1].playing or 0) == 1 and " player..." or " players..."), {icon = "users"})
+	TeleportService:TeleportToPlaceInstance(game.PlaceId, list[1].id, LP)
+end
+
+D.LIB_LINK = "https://github.com/koteqjjjj/arvn"
+A.act_lib_link = function() copy(D.LIB_LINK, "arvn lib link copied") end
+local syncing = false
+function D.syncImages()
+	if syncing then return end
+	syncing = true
+	task.spawn(function()
+		pcall(function()
+			local url = tostring(S.bg_url or "")
+			if S.bg_on and url ~= "" and url ~= D.META.bg_src_url then
+				local asset = D.fetchImage(url, "background")
+				if asset then
+					D.bgAsset = asset
+					D.META.bg_src_url = url
+					D.writeMeta()
+					D.applyBackground()
+				end
+			end
+			local purl = tostring(S.pfp_url or "")
+			if purl ~= "" and purl ~= D.META.pfp_src_url then
+				local asset = D.fetchImage(purl, "avatar")
+				if asset then
+					D.customAvatar = asset
+					D.META.avatar = true
+					D.META.pfp_src_url = purl
+					D.writeMeta()
+					D.requestRebuild()
+				end
+			elseif purl == "" and D.META.pfp_src_url then
+				D.customAvatar = nil
+				D.META.avatar = nil
+				D.META.pfp_src_url = nil
+				D.writeMeta()
+				D.requestRebuild()
+			end
+		end)
+		syncing = false
+	end)
+end
+
+D.RESET_HOOKS = D.RESET_HOOKS or {}
+function D.resetEverything()
+	for _, fn in ipairs(D.RESET_HOOKS) do
+		local ok, err = pcall(fn)
+		if not ok and D.logError then D.logError(err) end
+	end
+	pcall(function()
+		if not (listfiles and isfolder and isfolder(DIR)) then return end
+		for _, f in ipairs(listfiles(DIR)) do
+			local name = string.match(f, "[^/\\]+$") or ""
+			if name ~= "key.txt" and not string.find(name, "^icons_") and not string.find(name, "^sounds_") then
+				if isfolder(f) then
+					pcall(delfolder, f)
+				else
+					pcall(delfile, f)
+				end
+			end
+		end
+	end)
+	for k, v in pairs(D.DEF) do
+		if not string.find(k, "^__") then S[k] = D.clone(v) end
+	end
+	S.cfg_current = nil
+	D.bulk = true
+	for k in pairs(D.DEF) do pcall(D.fire, k) end
+	D.bulk = false
+	D.fire("ui_theme")
+	for f in pairs(D.BIND) do D.BIND[f] = nil end
+	for f, b in pairs(D.DEF_BIND) do D.BIND[f] = {key = b.key, mode = b.mode, list = b.list} end
+	for f in pairs(D.BIND) do D.fire("__bind:" .. f) end
+	D.fire("__binds")
+	table.clear(D.META)
+	D.customAvatar = nil
+	D.bgAsset = nil
+	D.fire("__configs")
+	local x, y = D.centerWin()
+	if D.W_STATE then
+		D.W_STATE.pos = nil
+		D.W_STATE.target = Vector2.new(x, y)
+	end
+	D.markDirty()
+	D.requestRebuild()
+	D.notify("Reset", "Everything is back to default.", {icon = "rotate-ccw"})
+end
+A.act_reset_everything = function()
+	D.openDialog({
+		Title = "Reset everything?",
+		Content = "Every option goes back to default. Saved configs, positions and pictures are deleted.",
+		Icon = "triangle-alert",
+		Buttons = {{Name = "Cancel"}, {Name = "Reset", Style = "Primary", Callback = function() D.resetEverything() end}},
+	})
+end
+A.act_eject = function()
+	D.setMenu(false)
+	task.wait(0.25)
+	UI.Unload()
+end
+A.act_reset_pos = function()
+	D.META.win_x, D.META.win_y = nil, nil
+	D.writeMeta()
+	local x, y = D.centerWin()
+	D.W_STATE.target = Vector2.new(x, y)
+end
+A.act_res_reset = function()
+	D.suspendRebuild = true
+	for _, k in ipairs(D.RES_FLAGS) do
+		if D.DEF[k] ~= nil then set(k, D.clone(D.DEF[k])) end
+	end
+	for _, k in ipairs({"ws_on", "ws_aspect", "ws_num", "ws_den", "ws_mode", "ws_fov_mode", "ws_fov", "ws_aim"}) do
+		if D.DEF[k] ~= nil then set(k, D.clone(D.DEF[k])) end
+	end
+	D.suspendRebuild = false
+	D.resUpdate()
+	D.requestRebuild()
+	D.notify("Display", "Display and ratio options reset.", {icon = "rotate-ccw", dur = 2})
+end
+A.act_ov_reset = function()
+	for _, k in ipairs({"wm_x", "wm_y", "kb_x", "kb_y", "ks_x", "ks_y"}) do D.META[k] = nil end
+	D.writeMeta()
+	D.buildOverlays()
+	D.notify("Overlays", "Positions reset.", {icon = "rotate-ccw", dur = 2})
+end
+A.act_reset_all = function()
+	D.bulk = true
+	for k, v in pairs(D.DEF) do
+		if not D.NOSAVE[k] then pcall(set, k, D.clone(v)) end
+	end
+	D.bulk = false
+	D.fire("ui_theme")
+	for f in pairs(D.BIND) do
+		D.BIND[f] = nil
+		D.fire("__bind:" .. f)
+	end
+	for f, b in pairs(D.DEF_BIND) do
+		D.BIND[f] = {key = b.key, mode = b.mode, list = b.list}
+		D.fire("__bind:" .. f)
+	end
+	D.fire("__binds")
+	D.markDirty()
+	D.notify("Reset", "Every setting is back to its default.", {icon = "rotate-ccw"})
+end
+A.act_pal_copy = function()
+	local name = S.ui_theme == "Custom" and "Dark" or D.themeName(S.ui_theme)
+	local p = D.PALETTES[name]
+	if not p then return end
+	D.suspendRebuild = true
+	set("pal_win", "#" .. p.win .. "FF")
+	set("pal_panel", "#" .. p.panel .. "FF")
+	set("pal_card", "#" .. p.card .. "FF")
+	set("pal_text", "#" .. p.text .. "FF")
+	set("pal_sub", "#" .. p.sub .. "FF")
+	D.suspendRebuild = false
+	set("ui_theme", "Custom")
+	D.requestRebuild()
+	D.notify("Custom palette", "Started from " .. name .. ".", {icon = "palette", dur = 2.5})
+end
+A.act_pfp_load = function()
+	local url = S.pfp_url
+	if not url or url == "" then
+		D.notify("Profile picture", "Paste a direct image link first.", {icon = "triangle-alert", sound = "error"})
+		return
+	end
+	D.notify("Profile picture", "Downloading...", {icon = "download", dur = 2})
+	local asset, err = D.fetchImage(url, "avatar")
+	if not asset then
+		D.notify("Profile picture", err, {icon = "triangle-alert", sound = "error"})
+		return
+	end
+	D.customAvatar = asset
+	D.META.avatar = true
+	D.META.pfp_src_url = url
+	D.writeMeta()
+	D.requestRebuild()
+	D.notify("Profile picture", "Updated.", {icon = "image"})
+end
+A.act_pfp_reset = function()
+	D.customAvatar = nil
+	D.META.avatar = nil
+	D.META.avatar_file = nil
+	D.META.pfp_src_url = nil
+	D.writeMeta()
+	set("pfp_url", "")
+	D.requestRebuild()
+	D.notify("Profile picture", "Back to your Roblox avatar.", {icon = "user-round"})
+end
+A.act_bg_load = function()
+	local url = S.bg_url
+	if not url or url == "" then
+		D.notify("Background", "Paste a direct image link first.", {icon = "triangle-alert", sound = "error"})
+		return
+	end
+	D.notify("Background", "Downloading...", {icon = "download", dur = 2})
+	local asset, err = D.fetchImage(url, "background")
+	if not asset then
+		D.notify("Background", err, {icon = "triangle-alert", sound = "error"})
+		return
+	end
+	D.bgAsset = asset
+	D.META.bg_src_url = url
+	D.writeMeta()
+	set("bg_on", true)
+	D.applyBackground()
+	D.notify("Background", "Applied to the window.", {icon = "wallpaper"})
+end
+A.act_avatar = function()
+	local path = DIR .. "/avatar.png"
+	local ok = pcall(function()
+		if not (isfile and isfile(path) and getcustomasset) then error("missing") end
+		D.customAvatar = getcustomasset(path)
+	end)
+	if ok and D.customAvatar then
+		D.notify("Profile", "Picture updated.", {icon = "image"})
+		D.requestRebuild()
+	else
+		D.notify("Profile", "Put a square image at workspace/" .. DIR .. "/avatar.png, then click again.", {icon = "image", dur = 6})
+	end
+end
+
+A.act_cfg_create = function()
+	local n = D.cleanName(S.cfg_new)
+	if n == "" then
+		D.notify("Config", "Type a name first.", {icon = "triangle-alert", sound = "error"})
+		return
+	end
+	if D.saveConfig(n) then
+		set("cfg_current", n)
+		set("cfg_new", "")
+		D.fire("__configs")
+		D.notify("Config saved", n, {icon = "save"})
+	else
+		D.notify("Config", "Could not save the config.", {icon = "triangle-alert", sound = "error"})
+	end
+end
+A.act_cfg_export = function() copy(D.exportCode(), "Share code copied") end
+A.act_cfg_import = function()
+	local raw = S.cfg_import
+	if (not raw or raw == "") and getclipboard then
+		local ok, v = pcall(getclipboard)
+		if ok then raw = v end
+	end
+	if D.importCode(raw) then
+		set("cfg_import", "")
+		D.notify("Imported", "The shared setup is now active.", {icon = "download"})
+	else
+		D.notify("Import failed", "That is not a valid share code.", {icon = "triangle-alert", sound = "error"})
+	end
+end
+
+local function allRoles(role)
+	local r = {}
+	for _, t in ipairs(TeamsService:GetTeams()) do r[t.Name] = role end
+	set("tm_roles", r)
+end
+A.act_tm_enemy = function() allRoles("Enemy") end
+A.act_tm_ally = function() allRoles("Ally") end
+A.act_tm_reset = function() set("tm_roles", {}) end
+end
+do
+local set, tween = D.set, D.tween
+D.menuOpen = false
+
+local modal = D.button({Name = "M", Size = UDim2.fromOffset(1, 1), Position = UDim2.fromOffset(-10, -10), Modal = false, Parent = D.gui})
+local cursor = D.frame({Name = "C", AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(8, 8), BackgroundColor3 = Color3.new(1, 1, 1), Visible = false, ZIndex = 50, Parent = D.L.toast})
+D.corner(cursor, 4)
+D.new("UIStroke", {Color = Color3.new(0, 0, 0), Thickness = 1.5, Transparency = 0.2, Parent = cursor})
+local unlocked, iconWas = false, nil
+local freeName = string.sub(HttpService:GenerateGUID(false), 1, 10)
+local function setUnlock(v)
+	v = v and true or false
+	if v == unlocked then return end
+	unlocked = v
+	modal.Modal = v
+	if v then
+		iconWas = UIS.MouseIconEnabled
+		RunService:BindToRenderStep(freeName, Enum.RenderPriority.Last.Value + 5, function()
+			if UIS.MouseBehavior ~= Enum.MouseBehavior.Default then UIS.MouseBehavior = Enum.MouseBehavior.Default end
+			if S.ui_cursor ~= "Dot" and not UIS.MouseIconEnabled then UIS.MouseIconEnabled = true end
+		end)
+	else
+		pcall(function() RunService:UnbindFromRenderStep(freeName) end)
+		if iconWas == false and UIS.MouseIconEnabled then pcall(function() UIS.MouseIconEnabled = false end) end
+		iconWas = nil
+		cursor.Visible = false
+	end
+end
+D.on(RunService.RenderStepped, function()
+	local show = unlocked and S.ui_cursor == "Dot"
+	if cursor.Visible ~= show then cursor.Visible = show end
+	if show then
+		local m = D.mouse()
+		cursor.Position = UDim2.fromOffset(m.X, m.Y)
+	end
+end)
+
+function D.mouseFree(v)
+	setUnlock(v or D.menuOpen)
+end
+
+function D.setMenu(v)
+	if D.menuOpen == v then return end
+	D.menuOpen = v
+	D.closePops(1)
+	D.hideTip()
+	if D.listening then D.listening.stop(nil) end
+	local W = D.W_STATE
+	local win = W.win
+	if win then
+		if v then
+			win.Visible = true
+			if S.ui_anim_open == false then
+				win.GroupTransparency = 0
+				W.scale.Scale = D.uiScale()
+			else
+				win.GroupTransparency = 1
+				W.scale.Scale = D.uiScale() * 0.94
+				local tp = W.target or Vector2.new(win.Position.X.Offset, win.Position.Y.Offset)
+				win.Position = UDim2.fromOffset(tp.X, tp.Y + 16)
+				tween(win, 0.3, {GroupTransparency = 0}, Enum.EasingStyle.Sine)
+				tween(W.scale, 0.45, {Scale = D.uiScale()}, Enum.EasingStyle.Back)
+			end
+		else
+			if S.ui_anim_open == false then
+				win.GroupTransparency = 1
+				win.Visible = false
+			else
+				tween(win, 0.2, {GroupTransparency = 1}, Enum.EasingStyle.Sine)
+				tween(W.scale, 0.22, {Scale = D.uiScale() * 0.95}, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+				task.delay(D.tweenTime(0.21), function()
+					if not D.menuOpen and win.Parent then win.Visible = false end
+				end)
+			end
+		end
+	end
+	D.play("open", v and 1 or 0.82)
+	setUnlock(v)
+	D.applyBackdrop()
+	D.refreshOverlays()
+	D.fire("__menu")
+end
+
+local rebuildPending, rebuildQueued = false, false
+function D.requestRebuild()
+	if rebuildPending or D.suspendRebuild then return end
+	if #D.pops > 0 or D.dragging() then
+		rebuildQueued = true
+		if D.liveTheme then D.liveTheme() end
+		return
+	end
+	rebuildQueued = false
+	rebuildPending = true
+	task.defer(function()
+		rebuildPending = false
+		if not D.alive then return end
+		D.buildWindow()
+		D.buildOverlays()
+		D.buildHud()
+	end)
+end
+
+function D.flushRebuild()
+	if rebuildQueued and #D.pops == 0 and not D.dragging() then D.requestRebuild() end
+end
+
+local function inputName(input)
+	local t = input.UserInputType
+	if t == Enum.UserInputType.Keyboard then
+		if input.KeyCode == Enum.KeyCode.Unknown then return nil end
+		return input.KeyCode.Name
+	end
+	if t == Enum.UserInputType.MouseButton1 or t == Enum.UserInputType.MouseButton2 or t == Enum.UserInputType.MouseButton3 then return t.Name end
+end
+
+local STROKE_KEYS = {W = true, A = true, S = true, D = true, Space = true}
+
+D.on(UIS.InputBegan, function(input, gp)
+	local t = input.UserInputType
+	local mouseClick = t == Enum.UserInputType.MouseButton1 or t == Enum.UserInputType.MouseButton2
+	if mouseClick then D.popClick() end
+	if t == Enum.UserInputType.Keyboard and STROKE_KEYS[input.KeyCode.Name] then D.keystroke(input.KeyCode.Name, true) end
+	if mouseClick then D.keystroke(t.Name, true) end
+
+	local l = D.listening
+	if l then
+		if not l.chip.Parent then
+			l.stop(nil)
+			return
+		end
+		if t == Enum.UserInputType.Keyboard then
+			local kc = input.KeyCode
+			if kc == Enum.KeyCode.Escape then
+				l.stop(nil)
+			elseif kc == Enum.KeyCode.Backspace then
+				if l.noClear then l.stop(nil) else l.stop("None") end
+			elseif kc ~= Enum.KeyCode.Unknown then
+				l.stop(kc.Name)
+			end
+		elseif t == Enum.UserInputType.MouseButton1 then
+			local m = D.mouse()
+			if not D.inRect(l.chip, m.X, m.Y) then l.stop(nil) end
+		elseif t == Enum.UserInputType.MouseButton2 or t == Enum.UserInputType.MouseButton3 then
+			if l.noMouse then l.stop(nil) else l.stop(t.Name) end
+		end
+		return
+	end
+
+	local focused = UIS:GetFocusedTextBox()
+	if focused then
+		if t == Enum.UserInputType.Keyboard then
+			if input.KeyCode == Enum.KeyCode.Down then D.searchMove(1) end
+			if input.KeyCode == Enum.KeyCode.Up then D.searchMove(-1) end
+		end
+		return
+	end
+
+	if t == Enum.UserInputType.Keyboard then
+		local kc = input.KeyCode
+		if kc == Enum.KeyCode.Escape and D.activeDialog then
+			if D.activeDialog.dismissable ~= false then D.activeDialog.close() end
+			return
+		end
+		if (kc == Enum.KeyCode.Return or kc == Enum.KeyCode.KeypadEnter) and D.activeDialog and D.activeDialog.submit then
+			D.activeDialog.submit()
+			return
+		end
+		if kc == Enum.KeyCode.Escape then
+			if #D.pops > 0 then
+				D.closePops(#D.pops)
+				return
+			end
+			if S.ui_escclose and D.menuOpen then
+				D.setMenu(false)
+				return
+			end
+		end
+		if kc == Enum.KeyCode.F and D.menuOpen and (UIS:IsKeyDown(Enum.KeyCode.LeftControl) or UIS:IsKeyDown(Enum.KeyCode.RightControl)) then
+			if D.CONFIG.Search ~= false then D.focusSearch() end
+			return
+		end
+		if kc.Name == S.ui_menukey then
+			if S.ui_menumode == "Hold" then D.setMenu(true) else D.setMenu(not D.menuOpen) end
+			return
+		end
+	end
+
+	local name = inputName(input)
+	if not name then return end
+	if gp and t ~= Enum.UserInputType.Keyboard then return end
+	for _, h in ipairs(D.KEYHOOKS or {}) do
+		if h.cb and S[h.flag] == name then
+			if h.mode == "Toggle" then
+				h.state = not h.state
+				task.spawn(h.cb, h.state)
+			elseif h.mode == "Hold" then
+				task.spawn(h.cb, true)
+			else
+				task.spawn(h.cb)
+			end
+		end
+	end
+	for flag, b in pairs(D.BIND) do
+		if b.key == name and not string.find(flag, "^__") then
+			if D.ACTION_BIND[flag] then
+				D.play("bind")
+				D.runAction(flag)
+			elseif b.mode == "Toggle" then
+				local v = not S[flag]
+				set(flag, v)
+				D.play("bind", v and 1.1 or 0.9)
+				D.notifyToggle({id = flag, label = D.LABELS[flag]}, v, "bind")
+			elseif b.mode == "Hold" then
+				set(flag, true)
+			elseif b.mode == "Release" then
+				set(flag, false)
+			end
+		end
+	end
+end)
+
+D.on(UIS.InputEnded, function(input)
+	local t = input.UserInputType
+	if t == Enum.UserInputType.MouseButton1 then D.endDrag() end
+	if t == Enum.UserInputType.Keyboard and STROKE_KEYS[input.KeyCode.Name] then D.keystroke(input.KeyCode.Name, false) end
+	if t == Enum.UserInputType.MouseButton1 or t == Enum.UserInputType.MouseButton2 then D.keystroke(t.Name, false) end
+	if t == Enum.UserInputType.Keyboard and input.KeyCode.Name == S.ui_menukey and S.ui_menumode == "Hold" and not D.listening then
+		D.setMenu(false)
+	end
+	local name = inputName(input)
+	if not name then return end
+	for _, h in ipairs(D.KEYHOOKS or {}) do
+		if h.cb and h.mode == "Hold" and S[h.flag] == name then task.spawn(h.cb, false) end
+	end
+	for flag, b in pairs(D.BIND) do
+		if b.key == name and not D.ACTION_BIND[flag] then
+			if b.mode == "Hold" then
+				set(flag, false)
+			elseif b.mode == "Release" then
+				set(flag, true)
+			end
+		end
+	end
+end)
+
+local frames = 0
+D.on(RunService.RenderStepped, function(dt)
+	frames += 1
+	D.stepWindow(dt)
+	if D.menuOpen then
+		pcall(D.stepPreview, dt, D.winScale())
+	end
+	D.stepParticles(dt)
+	D.stepHud(dt)
+end)
+
+local function pingMs()
+	local ok, v = pcall(function() return Stats.Network.ServerStatsItem["Data Ping"]:GetValue() end)
+	if ok and type(v) == "number" then return math.floor(v + 0.5) end
+	local ok2, v2 = pcall(function() return LP:GetNetworkPing() * 1000 end)
+	return ok2 and math.floor(v2 + 0.5) or 0
+end
+
+task.spawn(function()
+	local ok, info = pcall(function() return MarketplaceService:GetProductInfo(game.PlaceId) end)
+	set("i_game", ok and info and info.Name or "Unknown")
+end)
+
+task.spawn(function()
+	local last, tick = os.clock(), 0
+	local lastSaved = os.clock()
+	while D.alive do
+		task.wait(0.25)
+		if not D.alive then break end
+		tick += 1
+		local now = os.clock()
+		if now - last >= 0.5 then
+			D.lastFps = math.floor(frames / (now - last) + 0.5)
+			frames = 0
+			last = now
+			local h = D.fpsHistory
+			h[#h + 1] = D.lastFps
+			if #h > 120 then table.remove(h, 1) end
+			D.fire("__fps")
+		end
+		D.lastPing = pingMs()
+		set("i_fps", tostring(D.lastFps or 0))
+		set("i_ping", D.lastPing .. " ms")
+		set("i_players", #Players:GetPlayers() .. " / " .. Players.MaxPlayers)
+		set("i_uptime", D.fmtTime(now - D.started))
+		pcall(function() set("i_mem", math.floor(Stats:GetTotalMemoryUsageMb()) .. " MB") end)
+		if S.__save == "saving" then lastSaved = now end
+		local ago = math.floor(now - lastSaved)
+		set("i_saved", S.cfg_autosave == false and "Off" or (S.__save == "saving" and "Saving..." or (ago < 5 and "Saved just now" or ("Saved " .. D.fmtTime(ago) .. " ago"))))
+		D.safe(D.refreshOverlays, D.lastFps, D.lastPing)
+		D.stepKeystrokes()
+		if tick % 4 == 0 then D.safe(D.applyWorld) end
+	end
+end)
+
+UI.Get = function(k) return S[k] end
+UI.Set = function(k, v) set(k, v) end
+UI.OnChanged = function(k, fn) return D.watch(k, fn) end
+UI.Color = function(k) return D.parseColor(S[k]) end
+UI.Notify = function(title, body, opts) D.notify(title, body, opts) end
+UI.OnAction = function(id, fn) D.ACTIONS[id] = fn end
+UI.Toggle = function(v)
+	if v == nil then v = not D.menuOpen end
+	D.setMenu(v)
+end
+UI.IsOpen = function() return D.menuOpen end
+UI.PlayerTags = D.PLAYER_TAGS
+UI._D = D
+UI.Unload = function()
+	if not D.alive then return end
+	pcall(D.writeAutosave)
+	D.alive = false
+	pcall(D.closePops, 1)
+	pcall(D.hideTip)
+	setUnlock(false)
+	D.menuOpen = false
+	local settingFlags = {}
+	local function collect(rows)
+		for _, r in ipairs(rows) do
+			if r.id then settingFlags[r.id] = true end
+			if r.color then settingFlags[r.colorId or (tostring(r.id) .. "_color")] = true end
+			if r.sub then
+				for _, card in ipairs(r.sub.cards) do collect(card) end
+			end
+		end
+	end
+	for _, c in ipairs(D.BUILTIN.settings.children or {}) do
+		for _, col in ipairs(c.page or {}) do
+			for _, sec in ipairs(col) do
+				if type(sec) == "table" and sec.rows then collect(sec.rows) end
+			end
+		end
+	end
+	for k, v in pairs(D.DEF) do
+		if type(v) == "boolean" and S[k] == true then
+			if not settingFlags[k] and not string.find(k, "^__") then
+				S[k] = false
+				pcall(D.fire, k)
+			end
+		end
+	end
+	for f in pairs(D.BIND) do D.BIND[f] = nil end
+	pcall(D.applyWorld)
+	pcall(D.applyFps)
+	pcall(D.apply3d)
+	pcall(D.destroyWindow)
+	pcall(D.clearNotifications)
+	pcall(D.resetParticles)
+	for _, c in ipairs(D.conns) do pcall(function() c:Disconnect() end) end
+	for _, fn in ipairs(D.cleanups) do pcall(fn) end
+	if D.avatarTemplate then pcall(function() D.avatarTemplate:Destroy() end) end
+	for k in pairs(D.WATCH) do D.WATCH[k] = nil end
+	if genv.arvn == UI then genv.arvn = nil end
+	for k in pairs(UI) do UI[k] = nil end
+end
+
+local started = false
+function D.start()
+	if started or not D.alive then return end
+	started = true
+	UI.Folder = DIR
+	if PREV and PREV.folder ~= DIR then PREV = nil end
+	D.readMeta()
+	D.composeNav()
+	for k, v in pairs(D.DEF_OVERRIDES or {}) do
+		D.DEF[k] = D.clone(v)
+		S[k] = D.clone(v)
+	end
+	local restored = D.applyPrev()
+	if type(D.META.autosave) == "boolean" then S.cfg_autosave = D.META.autosave end
+	if type(D.META.autoload) == "string" then S.cfg_autoload = D.META.autoload end
+	if not restored then
+		local auto = D.readAutosave()
+		if auto then D.applySnapshot(auto) end
+		local want = S.cfg_autoload
+		if want and want ~= "Autosave" and D.readConfig(want) then
+			D.loadConfig(want)
+			S.cfg_current = want
+		end
+	end
+	if not D.validKey("ui_menukey", S.ui_menukey) then S.ui_menukey = "RightShift" end
+	S.ui_theme = D.themeName(S.ui_theme)
+	if not D.PALETTES[S.ui_theme] and S.ui_theme ~= "Custom" then S.ui_theme = "Dark" end
+	if S.ui_remember ~= false and D.META.page and D.ENTRY[D.META.page] and not D.ENTRY[D.META.page].children then
+		D.W_STATE.current = D.META.page
+	end
+	if PREV and PREV.page and D.ENTRY[PREV.page] then D.W_STATE.current = PREV.page end
+	local cur = D.ENTRY[D.W_STATE.current]
+	if not cur or cur.children then D.W_STATE.current = D.firstPage() end
+	S.__save = "saved"
+
+	if D.META.avatar then D.customAvatar = D.cachedImage("avatar") end
+	D.bgAsset = D.cachedImage("background")
+	local bgc = D.CONFIG.Background
+	if type(bgc) == "table" and type(bgc.Image) == "string" then
+		local img = bgc.Image
+		if string.find(img, "^https?://") then
+			if D.META.bgcfg_url == img then D.bgAsset = D.cachedImage("background") end
+			if not D.bgAsset or D.META.bgcfg_url ~= img then
+				local a = D.fetchImage(img, "background")
+				if a then
+					D.bgAsset = a
+					D.META.bgcfg_url = img
+					D.writeMeta()
+				end
+			end
+		elseif string.find(img, "^rbxasset") or string.find(img, "^rbxthumb") then
+			D.bgAsset = img
+		elseif string.match(img, "^%d+$") then
+			D.bgAsset = "rbxassetid://" .. img
+		end
+	end
+	do
+		local ok, name, ver = pcall(function() return identifyexecutor() end)
+		D.executor = ok and name and (tostring(name) .. (ver and ver ~= "" and (" " .. tostring(ver)) or "")) or "Unknown"
+	end
+	S.i_exec = D.executor
+	S.i_script = D.CONFIG.Title or "arvn"
+	S.i_author = D.CONFIG.Author or ""
+	S.i_version = D.CONFIG.Version and tostring(D.CONFIG.Version) or ""
+	S.i_lib = "arvn lib " .. UI.Version .. " by koteqjjjj"
+	local logo = D.CONFIG.Logo
+	if type(logo) == "string" and string.find(logo, "^https?://") then
+		if D.META.logo_url == logo then D.logoAsset = D.cachedImage("logo") end
+		if not D.logoAsset then
+			D.logoAsset = D.fetchImage(logo, "logo")
+			if D.logoAsset then
+				D.META.logo_url = logo
+				D.writeMeta()
+			end
+		end
+	end
+	D.applyTheme()
+	D.applyMetrics()
+	D.refreshStyle()
+	D.resUpdate()
+	D.buildWindow()
+	D.buildOverlays()
+	D.buildHud()
+
+	local palSyncing = false
+	local function syncPalette()
+		if S.ui_theme == "Custom" then return end
+		local p = D.PALETTES[D.themeName(S.ui_theme)]
+		if not p then return end
+		palSyncing = true
+		D.suspendRebuild = true
+		for k, key in pairs({pal_win = "win", pal_panel = "panel", pal_card = "card", pal_text = "text", pal_sub = "sub"}) do
+			set(k, "#" .. string.sub(p[key], 1, 6) .. "FF")
+		end
+		D.suspendRebuild = false
+		palSyncing = false
+	end
+	D.watch("ui_theme", function(v)
+		local real = D.themeName(v)
+		if real ~= v then
+			set("ui_theme", real)
+			return
+		end
+		if v ~= "Custom" and D.PALETTES[v] and D.META.theme_base ~= v then
+			D.META.theme_base = v
+			D.writeMeta()
+		end
+		if S.ui_accent_sync ~= false and v ~= "Custom" then
+			local p = D.PALETTES[v]
+			if p and p.accent then
+				D.suspendRebuild = true
+				set("ui_accent", "#" .. string.sub(p.accent, 1, 6) .. "FF")
+				D.suspendRebuild = false
+			end
+		end
+		syncPalette()
+		D.requestRebuild()
+	end)
+	for _, k in ipairs({"pal_win", "pal_panel", "pal_card", "pal_text", "pal_sub"}) do
+		D.watch(k, function()
+			if palSyncing or D.bulk then return end
+			if S.ui_theme ~= "Custom" then
+				set("ui_theme", "Custom")
+			else
+				D.requestRebuild()
+			end
+		end)
+	end
+	syncPalette()
+	for _, k in ipairs({"bg_on", "bg_opacity", "bg_dark", "bg_fit"}) do D.watch(k, D.applyBackground) end
+	for _, k in ipairs({"prof_name", "prof_tag"}) do D.watch(k, function() D.refreshOverlays() end) end
+	D.watch("cfg_autosave", function(v)
+		if not D.alive then return end
+		D.META.autosave = v
+		D.writeMeta()
+	end)
+	for _, k in ipairs({"ui_density", "ui_radius", "ui_font", "ui_rim", "ui_toggle"}) do D.watch(k, D.requestRebuild) end
+	-- Display, ratio and shape options.
+	local resPending = false
+	local function queueRes()
+		if resPending then return end
+		resPending = true
+		task.delay(0.05, function()
+			resPending = false
+			if not D.alive then return end
+			D.resUpdate()
+		end)
+	end
+	for _, k in ipairs(D.RES_FLAGS) do D.watch(k, queueRes) end
+	for _, k in ipairs(D.SHAPE_FLAGS) do D.watch(k, D.requestRebuild) end
+	D.bindViewport = function()
+		local cam = workspace.CurrentCamera
+		if cam and cam ~= D._camBound then
+			D._camBound = cam
+			D.on(cam:GetPropertyChangedSignal("ViewportSize"), queueRes)
+		end
+	end
+	D.bindViewport()
+	D.on(workspace:GetPropertyChangedSignal("CurrentCamera"), function()
+		D.bindViewport()
+		queueRes()
+	end)
+	local accentQueued = false
+	D.watch("ui_accent", function()
+		if accentQueued then return end
+		accentQueued = true
+		task.defer(function()
+			accentQueued = false
+			D.refreshAccent()
+			D.paintNav()
+		end)
+	end)
+	D.watch("ui_glass", function()
+		D.refreshGlass()
+		D.refreshOverlays()
+	end)
+	D.watch("ui_glass_amt", function()
+		D.refreshGlass()
+		D.refreshOverlays()
+	end)
+	D.watch("ui_scale", function()
+		D.closePops(1)
+		D.setWinScale(true)
+	end)
+	for _, k in ipairs({"ui_dim", "ui_dim_amt", "ui_blur", "ui_blur_size"}) do D.watch(k, D.applyBackdrop) end
+	for _, k in ipairs({"fx_style", "fx_size"}) do D.watch(k, D.resetParticles) end
+	local WORLD = {"w_fullbright", "w_time", "w_time_val", "w_ambient", "w_ambient_color", "w_bright", "w_bright_val", "w_shadows", "w_nofog", "w_fog", "w_fog_color", "w_fog_end", "w_grade", "w_contrast", "w_saturation", "w_exposure", "w_tint", "w_nobloom", "w_norays", "w_nodof"}
+	for _, k in ipairs(WORLD) do D.watch(k, D.applyWorld) end
+	D.watch("fps_unlock", D.applyFps)
+	D.watch("fps_cap", D.applyFps)
+	D.watch("perf_no3d", D.apply3d)
+	for _, k in ipairs({"ks_layout", "ks_mouse", "ks_cps", "ks_space", "ui_button"}) do D.watch(k, D.buildOverlays) end
+	D.watch("wm_region", function(v) if v then D.lookupRegion() end end)
+	if S.wm_region then D.lookupRegion() end
+	for _, k in ipairs({"ov_wm", "wm_style", "wm_fps", "wm_ping", "wm_region", "wm_time", "wm_uptime", "wm_exec", "wm_user", "ov_kb", "kb_inactive", "kb_hideempty", "ov_ks"}) do
+		D.watch(k, function() D.refreshOverlays(D.lastFps, D.lastPing) end)
+	end
+	D.watch("__binds", function() D.refreshKeybinds() end)
+	D.watch("cfg_autoload", function(v)
+		if not D.alive then return end
+		D.META.autoload = v
+		D.writeMeta()
+	end)
+
+	for _, fn in ipairs(D.INIT or {}) do
+		local ok, err = pcall(fn)
+		if not ok and D.logError then D.logError(err) end
+	end
+	D.applyWorld()
+	D.applyFps()
+	D.apply3d()
+	D.setMenu(S.ui_openload ~= false or PREV ~= nil)
+	if D.CONFIG.LoadNotification ~= false then
+		task.delay(0.4, function()
+			local ln = D.CONFIG.LoadNotification
+			D.notify(D.CONFIG.Title or "arvn", type(ln) == "string" and ln or ("Loaded. Press " .. D.keyTitle(S.ui_menukey) .. " to open the menu."), {icon = "sparkles", dur = 6})
+		end)
+	end
+end
+end
+do
+local API = {}
+API.Flags = setmetatable({}, {
+	__index = function(_, k) return S[k] end,
+	__newindex = function(_, k, v) D.set(k, v) end,
+	__iter = function() return next, S end,
+})
+D.FLAG_VIEW = API.Flags
+API.Binds = UI.Binds
+API.Version = UI.Version
+API.Themes = D.THEME_NAMES
+API.Fonts = D.FONTS_TEXT
+API.Sounds = D.SOUND_NAMES
+API.Elements = {}
+API.Errors = {}
+API.ShowErrors = false
+D.API = API
+UI.API = API
+
+function D.logError(err)
+	local e = API.Errors
+	e[#e + 1] = {t = os.time(), msg = tostring(err)}
+	while #e > 60 do table.remove(e, 1) end
+	if API.ShowErrors then D.notify("Script error", tostring(err), {kind = "Error", dur = 6}) end
+	if type(API.OnError) == "function" then pcall(API.OnError, err) end
+end
+
+local warnedIcons = {}
+local function pickIcon(v, fallback)
+	if v == nil or v == false then return fallback end
+	if type(v) == "number" then return tostring(v) end
+	if type(v) ~= "string" then return fallback end
+	if not D.ICONS or D.hasIcon(v) then return v end
+	if not warnedIcons[v] then
+		warnedIcons[v] = true
+		warn("arvn: there is no icon called \"" .. v .. "\". See docs/icons.md or lucide.dev for the names.")
+	end
+	return fallback
+end
+D.pickIcon = pickIcon
+
+local function spawnSafe(fn, ...)
+	if type(fn) ~= "function" then return end
+	task.spawn(function(...)
+		local ok, err = pcall(fn, ...)
+		if not ok then D.logError(err) end
+	end, ...)
+end
+D.spawnSafe = spawnSafe
+
+local function slug(s)
+	s = string.lower(tostring(s or ""))
+	s = string.gsub(s, "[^%w]+", "_")
+	s = string.gsub(s, "^_+", "")
+	s = string.gsub(s, "_+$", "")
+	return s ~= "" and s or "x"
+end
+
+local usedIds = {}
+local function claim(base)
+	local id, n = base, 1
+	while usedIds[id] or D.DEF[id] ~= nil do
+		n += 1
+		id = base .. "_" .. n
+	end
+	usedIds[id] = true
+	return id
+end
+
+local function tabId(name, flag, parent)
+	if flag and not usedIds[flag] then
+		usedIds[flag] = true
+		return flag
+	end
+	local base = (parent and (parent .. "_") or "tab_") .. slug(name)
+	local id, n = base, 1
+	while usedIds[id] or (D.BUILTIN[id] and D.BUILTIN[id].page) do
+		n += 1
+		id = base .. "_" .. n
+	end
+	usedIds[id] = true
+	return id
+end
+
+local navQueued = false
+local function navChanged()
+	D.navStale = true
+	if navQueued then return end
+	navQueued = true
+	task.defer(function()
+		navQueued = false
+		if not D.alive or not D.navStale then return end
+		D.composeNav()
+		if D.W_STATE.win then D.requestRebuild() end
+	end)
+end
+D.navChanged = navChanged
+
+local function rebuild()
+	if D.W_STATE.win then D.requestRebuild() end
+end
+
+local function hex(v, alpha)
+	if typeof(v) == "Color3" then return D.toHex(v, alpha or 1) end
+	if type(v) == "string" then
+		local h = string.upper(string.gsub(v, "#", ""))
+		if #h == 6 then h = h .. string.format("%02X", math.floor((alpha or 1) * 255 + 0.5)) end
+		return "#" .. h
+	end
+	return "#FFFFFFFF"
+end
+API.Hex = hex
+
+local function args(a, b)
+	if type(a) == "table" then return a end
+	if type(a) == "string" and type(b) == "table" then
+		b.Name = b.Name or b.Title or b.Text or a
+		return b
+	end
+	if type(a) == "string" then return {Name = a} end
+	return {}
+end
+
+local Element = {}
+local function conds(w)
+	if w == nil then return nil end
+	if type(w) == "string" then return {{w}} end
+	if type(w) == "function" then return {{fn = w}} end
+	if getmetatable(w) == Element then return {{w.Flag}} end
+	if type(w) ~= "table" then return nil end
+	local out = {}
+	for k, v in pairs(w) do
+		if type(k) == "number" then
+			if type(v) == "string" then
+				out[#out + 1] = {v}
+			elseif type(v) == "function" then
+				out[#out + 1] = {fn = v}
+			elseif getmetatable(v) == Element then
+				out[#out + 1] = {v.Flag}
+			elseif type(v) == "table" then
+				out[#out + 1] = {getmetatable(v[1]) == Element and v[1].Flag or v[1], v[2]}
+			end
+		elseif v == true then
+			out[#out + 1] = {k}
+		else
+			out[#out + 1] = {k, v}
+		end
+	end
+	return #out > 0 and out or nil
+end
+
+local function common(row, o)
+	row.desc = o.Tooltip or o.Description or o.Desc or row.desc
+	if o.Icon then row.icon = pickIcon(o.Icon, nil) end
+	if o.ResetButton ~= nil then row.reset = o.ResetButton and true or false end
+	if o.Risky then row.risky = true end
+	if o.Disabled then row.disabled = true end
+	if o.Locked then
+		row.disabled = true
+		row.disabledTip = type(o.Locked) == "string" and o.Locked or nil
+	end
+	if o.DisabledTooltip then row.disabledTip = o.DisabledTooltip end
+	if o.Visible == false then row.hidden = true end
+	row.depends = conds(o.ShowWhen or o.DependsOn)
+	row.enables = conds(o.EnableWhen)
+	if o.Keywords then row.keywords = type(o.Keywords) == "table" and table.concat(o.Keywords, " ") or tostring(o.Keywords) end
+	if o.Save == false then row.nosave = true end
+	return row
+end
+
+D.KEYHOOKS = {}
+local silent = {}
+
+Element.__index = function(t, k)
+	if k == "Value" then return S[rawget(t, "Flag")] end
+	return Element[k]
+end
+
+function Element:Get() return S[self.Flag] end
+Element.GetValue = Element.Get
+function Element:GetColor()
+	local v = S[self.Flag]
+	if type(v) ~= "string" then return nil end
+	return D.parseColor(v)
+end
+function Element:Set(v, quiet)
+	if self.Kind == "color" then v = hex(v) end
+	if quiet then silent[self.Flag] = true end
+	D.set(self.Flag, v)
+	silent[self.Flag] = nil
+	return self
+end
+Element.SetValue = Element.Set
+function Element:Reset()
+	local d = D.DEF[self.Flag]
+	if d ~= nil then D.set(self.Flag, D.clone(d)) end
+	return self
+end
+function Element:IsDefault()
+	local a, b = S[self.Flag], D.DEF[self.Flag]
+	if type(a) == "table" and type(b) == "table" then
+		if #a ~= #b then return false end
+		for i = 1, #a do
+			if a[i] ~= b[i] then return false end
+		end
+		return true
+	end
+	return a == b
+end
+function Element:Toggle()
+	if self.Kind == "toggle" then D.set(self.Flag, not S[self.Flag]) end
+	return self
+end
+function Element:OnChanged(fn)
+	local flag, kind = self.Flag, self.Kind
+	local off = D.watch(flag, function(v)
+		if kind == "color" then
+			local c, a = D.parseColor(v)
+			spawnSafe(fn, c, a)
+		else
+			spawnSafe(fn, v)
+		end
+	end)
+	return {Disconnect = off}
+end
+function Element:SetVisible(v)
+	if self.Row.protected then return self end
+	self.Row.hidden = not v
+	rebuild()
+	return self
+end
+function Element:SetName(textValue)
+	if self.Row.protected then return self end
+	self.Row.label = textValue
+	D.LABELS[self.Flag] = textValue
+	rebuild()
+	return self
+end
+Element.SetLabel = Element.SetName
+Element.SetTitle = Element.SetName
+function Element:SetDescription(textValue)
+	self.Row.desc = textValue
+	rebuild()
+	return self
+end
+function Element:SetIcon(name)
+	self.Row.icon = pickIcon(name, nil)
+	rebuild()
+	return self
+end
+function Element:SetDisabled(v, tip)
+	if self.Row.protected then return self end
+	self.Row.disabled = v and true or nil
+	self.Row.disabledTip = tip
+	rebuild()
+	return self
+end
+function Element:Lock(reason) return self:SetDisabled(true, reason) end
+function Element:Unlock() return self:SetDisabled(false) end
+function Element:IsLocked() return self.Row.disabled == true end
+local function sliderRange(self, lo, hi, step)
+	if self.Kind ~= "slider" then return self end
+	local r = self.Row
+	if lo ~= nil then r.min = tonumber(lo) or r.min end
+	if hi ~= nil then r.max = tonumber(hi) or r.max end
+	if step ~= nil then r.step = tonumber(step) or r.step end
+	if r.max < r.min then r.min, r.max = r.max, r.min end
+	if D.DEF[self.Flag] ~= nil then D.DEF[self.Flag] = math.clamp(D.DEF[self.Flag], r.min, r.max) end
+	local v = S[self.Flag]
+	if type(v) == "number" and (v < r.min or v > r.max) then D.set(self.Flag, math.clamp(v, r.min, r.max)) end
+	rebuild()
+	return self
+end
+function Element:SetMin(v) return sliderRange(self, v, nil, nil) end
+function Element:SetMax(v) return sliderRange(self, nil, v, nil) end
+function Element:SetRange(lo, hi) return sliderRange(self, lo, hi, nil) end
+function Element:SetStep(v) return sliderRange(self, nil, nil, v) end
+function Element:SetSuffix(text)
+	self.Row.suf = text
+	rebuild()
+	return self
+end
+
+function Element:SetValues(list, keep)
+	if type(list) == "function" then list = list() end
+	self.Row.opts = list
+	if keep == false then
+		local cur = S[self.Flag]
+		if self.Row.multi then
+			local nv = {}
+			for _, x in ipairs(type(cur) == "table" and cur or {}) do
+				if table.find(list, x) then nv[#nv + 1] = x end
+			end
+			D.set(self.Flag, nv)
+		elseif not table.find(list, cur) then
+			D.set(self.Flag, list[1])
+		end
+	end
+	if self.Kind == "segment" then rebuild() end
+	return self
+end
+Element.SetOptions = Element.SetValues
+Element.Refresh = Element.SetValues
+function Element:AddValues(list)
+	for _, v in ipairs(type(list) == "table" and list or {list}) do
+		if not table.find(self.Row.opts, v) then table.insert(self.Row.opts, v) end
+	end
+	if self.Kind == "segment" then rebuild() end
+	return self
+end
+function Element:RemoveValues(list)
+	for _, v in ipairs(type(list) == "table" and list or {list}) do
+		local i = table.find(self.Row.opts, v)
+		if i then table.remove(self.Row.opts, i) end
+	end
+	if self.Kind == "segment" then rebuild() end
+	return self
+end
+function Element:SelectAll()
+	if self.Row and self.Row.multi and self.Row.opts then
+		local opts = type(self.Row.opts) == "function" and self.Row.opts() or self.Row.opts
+		local nv = table.clone(opts)
+		D.set(self.Flag, nv)
+	end
+	return self
+end
+function Element:DeselectAll()
+	if self.Row and self.Row.multi then
+		D.set(self.Flag, {})
+	end
+	return self
+end
+Element.Clear = Element.DeselectAll
+function Element:SetKey(key, mode)
+	local b = D.getBind(self.Flag)
+	b.key = key or "None"
+	if mode then b.mode = mode end
+	D.bindChanged(self.Flag)
+	return self
+end
+function Element:GetKey()
+	local b = D.BIND[self.Flag]
+	return b and b.key or "None", b and b.mode or "Toggle"
+end
+function Element:Press()
+	if self.Kind == "button" then D.runAction(self.Flag) end
+	return self
+end
+Element.Fire = Element.Press
+function Element:Highlight()
+	local reg = D.ROWREG[self.Page]
+	local r = reg and reg[self.Flag]
+	if r and r.inst then D.flashRow(r.inst) end
+	return self
+end
+function Element:Reveal()
+	if not self.Page then return self end
+	if not D.menuOpen then D.setMenu(true) end
+	D.goTo({page = self.Page, id = self.Flag, parent = self.ParentFlag})
+	return self
+end
+function Element:Destroy()
+	for _, list in ipairs({self.List or {}, self.Also or {}}) do
+		local i = table.find(list, self.Row)
+		if i then table.remove(list, i) end
+	end
+	API.Elements[self.Flag] = nil
+	navChanged()
+end
+
+local function watchCallback(flag, cb, kind)
+	if type(cb) ~= "function" then return end
+	return D.watch(flag, function(v)
+		if silent[flag] then return end
+		if kind == "color" then
+			local c, a = D.parseColor(v)
+			spawnSafe(cb, c, a)
+		else
+			spawnSafe(cb, v)
+		end
+	end)
+end
+
+local Container = {}
+Container.__index = Container
+
+local function autoId(self, kind, name, flag)
+	if flag then
+		usedIds[flag] = true
+		return flag
+	end
+	return claim((self.path or "x") .. "_" .. slug(name or kind))
+end
+
+local function push(self, row, kind, def, callback)
+	row.id = row.id or autoId(self, kind, row.label)
+	self.rows[#self.rows + 1] = row
+	if self.also then self.also[#self.also + 1] = row end
+	local el = setmetatable({Flag = row.id, Row = row, Kind = kind, Page = self.page, ParentFlag = self.parentFlag, List = self.rows, Also = self.also}, Element)
+	if def ~= nil then D.registerFlag(row.id, def, {nosave = row.nosave, label = row.label}) end
+	el._cbOff = watchCallback(row.id, callback, kind)
+	API.Elements[row.id] = el
+	navChanged()
+	return el
+end
+
+local function subContainer(self, rows, parentFlag, path)
+	return setmetatable({rows = rows, page = self.page, parentFlag = parentFlag, path = path}, Container)
+end
+
+function Container:Toggle(a, b)
+	local o = args(a, b)
+	local name = o.Name or o.Title or o.Text or "Toggle"
+	local row = common({t = "toggle", label = name, def = o.Default == true, nobind = o.NoKeybind or o.Keybind == false}, o)
+	row.id = autoId(self, "toggle", name, o.Flag)
+	if o.Keybind and o.Keybind ~= false then
+		if type(o.Keybind) == "table" then
+			row.bind, row.mode = o.Keybind.Key or o.Keybind.Default or o.Keybind[1], o.Keybind.Mode or o.Keybind[2]
+		elseif type(o.Keybind) == "string" then
+			row.bind = o.Keybind
+		end
+	end
+	local colorCfg = o.Color
+	if colorCfg then
+		local c = typeof(colorCfg) == "Color3" and {Default = colorCfg} or colorCfg
+		row.color = hex(c.Default or c[1] or Color3.new(1, 1, 1), c.Alpha or o.Alpha or (o.Transparency and 1 - o.Transparency) or nil)
+		row.colorId = c.Flag or o.ColorFlag or (row.id .. "_color")
+		row.colorCb = c.Callback or o.ColorCallback
+	end
+	if o.Menu then
+		local sub = {title = o.MenuTitle or name, cards = {}}
+		row.sub = sub
+		local m = {}
+		local n = 0
+		function m.Card()
+			n += 1
+			local rows = {}
+			sub.cards[#sub.cards + 1] = rows
+			return subContainer(self, rows, row.id, row.id .. "_m" .. n)
+		end
+		m.Section = m.Card
+		m.Page = m.Card
+		o.Menu(m)
+	end
+	local el = push(self, row, "toggle", row.def, o.Callback)
+	if row.color then
+		D.registerFlag(row.colorId, row.color)
+		el.Color = setmetatable({Flag = row.colorId, Row = row, Kind = "color", Page = self.page}, Element)
+		API.Elements[row.colorId] = el.Color
+		watchCallback(row.colorId, row.colorCb, "color")
+	end
+	return el
+end
+Container.Switch = Container.Toggle
+
+function Element:AddKeybind(o)
+	o = type(o) == "string" and {Default = o} or o or {}
+	local key, mode = o.Default or o.Key or "None", o.Mode or "Toggle"
+	self.Row.bind, self.Row.mode = key, mode
+	self.Row.nobind = nil
+	if D.DEF_BIND[self.Flag] == nil then D.DEF_BIND[self.Flag] = {key = key, mode = mode, list = true} end
+	if D.BIND[self.Flag] == nil then
+		D.BIND[self.Flag] = {key = key, mode = mode, list = true}
+		D.bindChanged(self.Flag)
+	end
+	rebuild()
+	return self
+end
+
+function Element:AddColor(o)
+	o = typeof(o) == "Color3" and {Default = o} or o or {}
+	local cid = o.Flag or (self.Flag .. "_color")
+	self.Row.color = hex(o.Default or Color3.new(1, 1, 1), o.Alpha)
+	self.Row.colorId = cid
+	D.registerFlag(cid, self.Row.color)
+	watchCallback(cid, o.Callback, "color")
+	self.Color = setmetatable({Flag = cid, Row = self.Row, Kind = "color", Page = self.Page}, Element)
+	API.Elements[cid] = self.Color
+	rebuild()
+	return self.Color
+end
+
+function Container:Slider(a, b)
+	local o = args(a, b)
+	local name = o.Name or o.Title or o.Text or "Slider"
+	local step = o.Step or o.Increment or (o.Rounding and (1 / 10 ^ o.Rounding)) or 1
+	local row = common({t = "slider", label = name, min = o.Min or 0, max = o.Max or 100, step = step, suf = o.Suffix, maxLabel = o.MaxLabel, commit = o.CommitOnRelease or o.Live == false}, o)
+	row.id = autoId(self, "slider", name, o.Flag)
+	row.def = math.clamp(o.Default or row.min, row.min, row.max)
+	return push(self, row, "slider", row.def, o.Callback)
+end
+
+local function playerNames(excludeSelf)
+	local t = {}
+	for _, p in ipairs(Players:GetPlayers()) do
+		if not (excludeSelf and p == LP) then t[#t + 1] = p.Name end
+	end
+	table.sort(t, function(x, y) return string.lower(x) < string.lower(y) end)
+	return t
+end
+
+local function teamNames()
+	local t = {}
+	for _, tm in ipairs(TeamsService:GetTeams()) do t[#t + 1] = tm.Name end
+	table.sort(t)
+	return t
+end
+
+local function resolveValues(v)
+	if type(v) == "function" then v = v() end
+	if typeof(v) == "Enum" then
+		local t = {}
+		for _, it in ipairs(v:GetEnumItems()) do t[#t + 1] = it.Name end
+		return t
+	end
+	if typeof(v) == "Instance" then
+		local t = {}
+		for _, c in ipairs(v:GetChildren()) do t[#t + 1] = c.Name end
+		table.sort(t)
+		return t
+	end
+	return type(v) == "table" and v or {}
+end
+
+function Container:Dropdown(a, b)
+	local o = args(a, b)
+	local name = o.Name or o.Title or o.Text or "Dropdown"
+	local special = o.Special or ((o.Values == "Players" or o.Options == "Players") and "Players") or ((o.Values == "Teams" or o.Options == "Teams") and "Teams")
+	local list
+	if special == "Players" then
+		list = playerNames(o.ExcludeSelf ~= false)
+	elseif special == "Teams" then
+		list = teamNames()
+	else
+		list = resolveValues(o.Values or o.Options)
+	end
+	local row = common({t = "dropdown", label = name, opts = list, multi = o.Multi == true, width = o.Width, listWidth = o.ListWidth, fontPreview = o.FontPreview, preview = o.SoundPreview, placeholder = o.Placeholder, search = o.Search ~= nil and o.Search or (o.Searchable ~= nil and o.Searchable or nil), searchPlaceholder = o.SearchPlaceholder, selectAll = o.SelectAll}, o)
+	row.id = autoId(self, "dropdown", name, o.Flag)
+	local def = o.Default
+	if type(def) == "number" and not row.multi and list[def] ~= nil and not table.find(list, def) then def = list[def] end
+	if row.multi then
+		if type(def) ~= "table" then def = def and {def} or {} end
+	elseif def == nil then
+		def = special and "" or (list[1] or "")
+	end
+	row.def = def
+	local el = push(self, row, "dropdown", def, o.Callback)
+	if special == "Players" then
+		local function upd() el:SetValues(playerNames(o.ExcludeSelf ~= false)) end
+		D.on(Players.PlayerAdded, upd)
+		D.on(Players.PlayerRemoving, function() task.defer(upd) end)
+	elseif special == "Teams" then
+		local function upd() el:SetValues(teamNames()) end
+		D.on(TeamsService.ChildAdded, upd)
+		D.on(TeamsService.ChildRemoved, function() task.defer(upd) end)
+	end
+	return el
+end
+
+function Container:Segmented(a, b)
+	local o = args(a, b)
+	local name = o.Name or o.Title or "Mode"
+	local list = resolveValues(o.Values or o.Options)
+	local row = common({t = "segment", label = name, opts = list}, o)
+	row.id = autoId(self, "segment", name, o.Flag)
+	row.def = o.Default or list[1]
+	return push(self, row, "segment", row.def, o.Callback)
+end
+Container.Segment = Container.Segmented
+
+function Container:ColorPicker(a, b)
+	local o = typeof(b) == "Color3" and {Name = a, Default = b} or args(a, b)
+	local name = o.Name or o.Title or "Color"
+	local row = common({t = "color", label = name}, o)
+	row.id = autoId(self, "color", name, o.Flag)
+	row.def = hex(o.Default or Color3.new(1, 1, 1), o.Alpha or (o.Transparency and 1 - o.Transparency) or nil)
+	return push(self, row, "color", row.def, o.Callback)
+end
+Container.Colorpicker = Container.ColorPicker
+Container.Color = Container.ColorPicker
+
+function Container:Input(a, b)
+	local o = args(a, b)
+	local name = o.Name or o.Title or "Input"
+	local row = common({t = "input", label = name, placeholder = o.Placeholder, width = o.Width, live = o.Live or o.Commit == "Live"}, o)
+	row.id = autoId(self, "input", name, o.Flag)
+	row.def = tostring(o.Default or "")
+	local el = push(self, row, "input", row.def, nil)
+	if o.Callback then
+		D.watch(row.id, function(v)
+			if silent[row.id] then return end
+			if o.MaxLength and #v > o.MaxLength then
+				D.set(row.id, string.sub(v, 1, o.MaxLength))
+				return
+			end
+			if o.Numeric then
+				local n = tonumber(v)
+				if n then
+					if o.Min then n = math.max(o.Min, n) end
+					if o.Max then n = math.min(o.Max, n) end
+					spawnSafe(o.Callback, n)
+				end
+			else
+				spawnSafe(o.Callback, v)
+			end
+		end)
+	end
+	return el
+end
+Container.Textbox = Container.Input
+Container.TextBox = Container.Input
+
+function Container:Keybind(a, b)
+	local o = args(a, b)
+	local name = o.Name or o.Title or "Keybind"
+	local row = common({t = "keybind", label = name}, o)
+	row.id = autoId(self, "keybind", name, o.Flag)
+	row.def = o.Default or "None"
+	local el = push(self, row, "keybind", row.def, o.ChangedCallback or o.Changed)
+	local mode = o.Mode or "Press"
+	if mode == "Trigger" then mode = "Press" end
+	local state = {cb = o.Callback, listeners = {}}
+	D.KEYHOOKS[#D.KEYHOOKS + 1] = {flag = row.id, mode = mode, state = false, cb = function(...)
+		if state.cb then spawnSafe(state.cb, ...) end
+		for _, f in ipairs(state.listeners) do spawnSafe(f, ...) end
+	end}
+	el._setCallback = function(fn) state.cb = fn end
+	el._listeners = state.listeners
+	return el
+end
+Container.Bind = Container.Keybind
+
+function Container:Button(a, b)
+	local o = type(a) == "string" and type(b) == "function" and {Name = a, Callback = b} or args(a, b)
+	local name = o.Name or o.Title or o.Text or "Button"
+	local variant = o.Variant or o.Style
+	local row = common({t = "button", label = name, danger = o.Danger or variant == "Danger", confirm = o.Confirm or o.DoubleClick, nobind = o.NoKeybind}, o)
+	row.id = autoId(self, "button", name, o.Flag)
+	local state = {cb = o.Callback, listeners = {}}
+	local cd, last = o.Cooldown or 0, -math.huge
+	D.ACTIONS[row.id] = function()
+		if os.clock() - last < cd then return end
+		last = os.clock()
+		local fns = {}
+		if state.cb then fns[1] = state.cb end
+		for _, f in ipairs(state.listeners) do fns[#fns + 1] = f end
+		for _, f in ipairs(fns) do
+			local ok, err = pcall(f)
+			if not ok then D.logError(err) end
+		end
+	end
+	D.ACTION_BIND[row.id] = true
+	local el = push(self, row, "button", nil, nil)
+	el._setCallback = function(fn) state.cb = fn end
+	el._listeners = state.listeners
+	if o.Keybind then
+		local key = type(o.Keybind) == "table" and (o.Keybind.Key or o.Keybind[1]) or o.Keybind
+		D.DEF_BIND[row.id] = {key = key, mode = "Toggle", list = true}
+		if D.BIND[row.id] == nil then D.BIND[row.id] = {key = key, mode = "Toggle", list = true} end
+	end
+	return el
+end
+
+function Container:Buttons(list)
+	local btns = {}
+	for _, bd in ipairs(list) do
+		local name = bd.Name or bd.Title or "Button"
+		local id = autoId(self, "button", name, bd.Flag)
+		local cb = bd.Callback
+		D.ACTIONS[id] = function()
+			if cb then
+				local ok, err = pcall(cb)
+				if not ok then D.logError(err) end
+			end
+		end
+		D.ACTION_BIND[id] = true
+		btns[#btns + 1] = {id, name, bd.Description}
+	end
+	return push(self, {t = "buttons", id = claim((self.path or "x") .. "_buttons"), buttons = btns}, "buttons", nil, nil)
+end
+
+function Container:Label(a, b)
+	local o = type(a) == "table" and a or {Text = a, Style = type(b) == "string" and b or nil}
+	local id = autoId(self, "label", "label", o.Flag)
+	S[id] = tostring(o.Text or o.Name or o.Content or "")
+	local el = push(self, common({t = "note", id = id, label = S[id], style = o.Style, align = o.Align, wrap = o.Wrap}, o), "note", nil, nil)
+	function el.SetText(_, v)
+		D.set(id, tostring(v))
+		return el
+	end
+	return el
+end
+
+function Container:Paragraph(a, b)
+	local o = type(a) == "table" and a or {Title = a, Body = b}
+	local id = autoId(self, "paragraph", o.Title or "paragraph", o.Flag)
+	S[id] = tostring(o.Body or o.Content or o.Text or "")
+	local el = push(self, common({t = "paragraph", id = id, label = o.Title or o.Name or "", content = S[id]}, o), "paragraph", nil, nil)
+	function el.SetContent(_, v)
+		D.set(id, tostring(v))
+		return el
+	end
+	el.SetBody = el.SetContent
+	return el
+end
+
+function Container:Info(a, b)
+	local o = type(a) == "table" and a or {Name = a, Value = b}
+	local id = autoId(self, "info", o.Name or "info", o.Flag)
+	S[id] = tostring(o.Value or "")
+	local el = push(self, common({t = "info", id = id, label = o.Name or "Info", value = S[id]}, o), "info", nil, nil)
+	function el.Set(_, v)
+		D.set(id, tostring(v))
+		return el
+	end
+	return el
+end
+Container.Stat = Container.Info
+
+function Container:Progress(a, b)
+	local o = type(a) == "table" and a or {Name = a, Value = b}
+	local id = autoId(self, "progress", o.Name or "progress", o.Flag)
+	local max = o.Max or 1
+	S[id] = math.clamp((tonumber(o.Value or o.Default) or 0) / max, 0, 1)
+	local el = push(self, common({t = "progress", id = id, label = o.Name or "Progress"}, o), "progress", nil, nil)
+	function el.Set(_, v)
+		D.set(id, math.clamp((tonumber(v) or 0) / max, 0, 1))
+		return el
+	end
+	return el
+end
+
+function Container:Divider(label)
+	local o = type(label) == "table" and label or {Text = label}
+	return push(self, {t = "divider", id = claim((self.path or "x") .. "_div"), label = o.Text or o.Name}, "divider", nil, nil)
+end
+
+function Container:Spacer(h)
+	return push(self, {t = "spacer", id = claim((self.path or "x") .. "_space"), height = type(h) == "table" and h.Height or h or 8}, "spacer", nil, nil)
+end
+
+function Container:Image(a)
+	local o = type(a) == "table" and a or {Source = a}
+	local id = autoId(self, "image", o.Name or "image", o.Flag)
+	S[id] = o.Source or o.Image or ""
+	local el = push(self, common({t = "image", id = id, source = S[id], height = o.Height, fit = o.Fit, caption = o.Caption, tint = o.Tint, transparency = o.Transparency, tile = o.TileSize, onClick = o.Callback or o.OnClick}, o), "image", nil, nil)
+	function el.SetSource(_, v)
+		D.set(id, tostring(v or ""))
+		return el
+	end
+	el.SetImage = el.SetSource
+	return el
+end
+
+function Container:Console(a)
+	local o = type(a) == "table" and a or {Name = a}
+	local id = autoId(self, "console", o.Name or "console", o.Flag)
+	if o.MaxLines then
+		D.CONSOLES[id] = D.CONSOLES[id] or {}
+		D.CONSOLES[id].max = o.MaxLines
+	end
+	local el = push(self, {t = "console", id = id, height = o.Height, empty = o.Empty}, "console", nil, nil)
+	local stamps = o.Timestamps ~= false
+	function el.Append(_, msg, level)
+		D.consoleAppend(id, msg, level, stamps)
+		return el
+	end
+	function el.Log(_, msg) return el:Append(msg, "info") end
+	function el.Success(_, msg) return el:Append(msg, "success") end
+	function el.Warn(_, msg) return el:Append(msg, "warn") end
+	function el.Error(_, msg) return el:Append(msg, "error") end
+	function el.Clear()
+		D.consoleClear(id)
+		return el
+	end
+	function el.Copy()
+		local buf = D.CONSOLES[id]
+		if buf and setclipboard then
+			local plain = {}
+			for i, l in ipairs(buf) do plain[i] = (string.gsub(l, "<[^>]+>", "")) end
+			setclipboard(table.concat(plain, "\n"))
+		end
+		return el
+	end
+	return el
+end
+
+function Container:PlayerList()
+	return push(self, {t = "playerlist", id = claim((self.path or "x") .. "_players")}, "playerlist", nil, nil)
+end
+
+local Section = setmetatable({}, {__index = Container})
+Section.__index = Section
+
+function Section:Page(name)
+	local sec = self.sec
+	if not sec.tabs then sec.tabs = {} end
+	local tb = {name = tostring(name or ("Page " .. (#sec.tabs + 1))), rows = {}}
+	table.insert(sec.tabs, tb)
+	navChanged()
+	return setmetatable({rows = tb.rows, also = sec.rows, page = self.page, path = self.path .. "_" .. slug(tb.name)}, Container)
+end
+function Section:GetPage(name)
+	local k = string.lower(tostring(name))
+	for _, tb in ipairs(self.sec.tabs or {}) do
+		if string.lower(tb.name) == k then
+			return setmetatable({rows = tb.rows, also = self.sec.rows, page = self.page, path = self.path .. "_" .. slug(tb.name)}, Container)
+		end
+	end
+end
+
+local function tabOptions(entry, o)
+	entry.desc = o.Description or o.Tooltip
+	entry.order = o.Order
+	entry.locked = o.Locked
+	if o.Visible == false then entry.hidden = true end
+	entry.depends = conds(o.ShowWhen)
+	if entry.depends then
+		entry._vis = D.checkConds and D.checkConds(entry.depends)
+		for _, d in ipairs(entry.depends) do
+			D.watch(d.fn and "*" or d[1], function()
+				local v = D.checkConds(entry.depends)
+				if v ~= entry._vis then
+					entry._vis = v
+					navChanged()
+				end
+			end)
+		end
+	end
+	return entry
+end
+
+local Tab = {}
+Tab.__index = Tab
+
+function Tab:Section(o, side)
+	if type(o) == "string" then o = {Name = o, Side = side} end
+	o = o or {}
+	if not self.entry.page then self.entry.page = {{}, {}} end
+	local s = o.Side
+	local col
+	if s == "Right" or s == 2 then
+		col = 2
+	elseif s == "Left" or s == 1 then
+		col = 1
+	else
+		local a, b = 0, 0
+		for _, sec in ipairs(self.entry.page[1]) do a += #sec.rows + 1 end
+		for _, sec in ipairs(self.entry.page[2] or {}) do b += #sec.rows + 1 end
+		col = a <= b and 1 or 2
+	end
+	self.entry.page[col] = self.entry.page[col] or {}
+	local title = o.Name or o.Title or ""
+	local sec = {title = title, rows = {}, order = o.Order, hidden = o.Visible == false or nil, depends = conds(o.ShowWhen), reset = o.ResetButton}
+	table.insert(self.entry.page[col], sec)
+	navChanged()
+	local obj = setmetatable({rows = sec.rows, sec = sec, page = self.entry.id, entry = self.entry, col = col, path = self.entry.id .. "_" .. slug(title ~= "" and title or ("s" .. col))}, Section)
+	for _, p in ipairs(o.Pages or {}) do obj:Page(p) end
+	return obj
+end
+Tab.AddSection = Tab.Section
+function Tab:LeftSection(name) return self:Section({Name = name, Side = "Left"}) end
+function Tab:RightSection(name) return self:Section({Name = name, Side = "Right"}) end
+
+function Tab:SubTab(o)
+	o = type(o) == "string" and {Name = o} or o
+	local entry = tabOptions({id = tabId(o.Name, o.Flag or o.Id, self.entry.id), name = o.Name or "Tab", icon = pickIcon(o.Icon, "app-window"), page = {{}, {}}}, o)
+	self.entry.page = nil
+	self.entry.children = self.entry.children or {}
+	table.insert(self.entry.children, entry)
+	navChanged()
+	return setmetatable({entry = entry, window = self.window, parentEntry = self.entry}, Tab)
+end
+Tab.Sub = Tab.SubTab
+
+local TEMPLATE = {
+	Player = function() return D.BUILTIN.player end,
+	PlayerVisuals = function() return D.BUILTIN.visuals.children[1] end,
+	Extras = function() return D.BUILTIN.visuals.children[2] end,
+	World = function() return D.BUILTIN.visuals.children[3] end,
+	Targets = function() return D.BUILTIN.targets end,
+	Server = function() return D.BUILTIN.server end,
+	Tools = function() return D.BUILTIN.tools end,
+}
+API.Templates = {"Player", "PlayerVisuals", "Extras", "World", "Targets", "Server", "Tools"}
+function Tab:Template(name)
+	local src = TEMPLATE[name] and TEMPLATE[name]()
+	if not src then return self end
+	self.entry.page = src.page
+	self.entry.grouped = src.grouped
+	navChanged()
+	return self
+end
+
+function Tab:Select()
+	if D.W_STATE.win then D.selectPage(self.entry.id) else D.W_STATE.current = self.entry.id end
+end
+
+local Group = {}
+Group.__index = Group
+
+function Group:Tab(o)
+	o = type(o) == "string" and {Name = o} or o
+	local entry = tabOptions({id = tabId(o.Name or o.Title, o.Flag or o.Id), name = o.Name or o.Title or "Tab", icon = pickIcon(o.Icon, "app-window"), page = {{}, {}}}, o)
+	local list = D.USER_NAV
+	local idx = #list + 1
+	if self.header then
+		idx = table.find(list, self.header) or idx
+		idx += 1
+		while list[idx] and not list[idx].group do idx += 1 end
+	end
+	table.insert(list, idx, entry)
+	navChanged()
+	return setmetatable({entry = entry, window = self.window}, Tab)
+end
+Group.AddTab = Group.Tab
+
+local Window = {}
+Window.__index = Window
+
+function Window:Group(name)
+	local o = type(name) == "table" and name or {}
+	local header = {group = type(name) == "table" and (name.Name or name.Title) or name, order = o.Order, hidden = o.Visible == false or nil}
+	table.insert(D.USER_NAV, header)
+	navChanged()
+	return setmetatable({header = header, window = self}, Group)
+end
+Window.AddGroup = Window.Group
+Window.Category = Window.Group
+
+function Window:Tab(o)
+	local g = setmetatable({window = self}, Group)
+	return g:Tab(o)
+end
+Window.AddTab = Window.Tab
+
+local function notify(o, body, dur)
+	if type(o) == "string" then o = {Title = o, Content = body, Duration = dur} end
+	o = o or {}
+	local buttons
+	if type(o.Buttons) == "table" then
+		buttons = {}
+		for i, bd in ipairs(o.Buttons) do
+			local cb = type(bd) == "table" and (bd.Callback or bd[2]) or nil
+			buttons[i] = {Name = type(bd) == "table" and (bd.Name or bd[1]) or tostring(bd), Callback = cb and function() spawnSafe(cb) end}
+		end
+	end
+	local click = o.Callback
+	local color = o.Color
+	if type(color) == "string" then color = (D.parseColor(color)) end
+	return D.notify(o.Title or D.CONFIG.Title or "Notice", o.Content or o.Body or o.Text or "", {
+		icon = o.Icon, dur = o.Duration, sound = o.Sound == false and "none" or o.Sound, compact = o.Compact, kind = o.Kind, persist = o.Persist,
+		buttons = buttons, color = color, callback = click and function() spawnSafe(click) end,
+	})
+end
+function Window:Notify(o, body, dur) return notify(o, body, dur) end
+function API:Notify(o, body, dur) return notify(o, body, dur) end
+
+local function dialog(o)
+	o = o or {}
+	if type(o.Buttons) == "table" then
+		for _, bd in ipairs(o.Buttons) do
+			local cb = bd.Callback
+			if cb then bd.Callback = function(...) spawnSafe(cb, ...) end end
+		end
+	end
+	return D.openDialog(o)
+end
+function Window:Dialog(o) return dialog(o) end
+function API:Dialog(o) return dialog(o) end
+
+local function prompt(o)
+	o = o or {}
+	local cb = o.Callback
+	return D.openDialog({
+		Title = o.Title or "Enter a value",
+		Content = o.Content or o.Body,
+		Icon = o.Icon or "text-cursor-input",
+		Input = {Placeholder = o.Placeholder, Default = o.Default},
+		Validate = o.Validate,
+		Confirm = o.Confirm,
+		Callback = cb and function(v) spawnSafe(cb, v) end,
+	})
+end
+function Window:Prompt(o) return prompt(o) end
+function API:Prompt(o) return prompt(o) end
+
+function Window:SetTheme(name) D.set("ui_theme", name) end
+function Window:SetAccent(c) D.set("ui_accent", hex(c)) end
+function Window:SetFont(name) D.set("ui_font", name) end
+function Window:SetScale(pct) D.set("ui_scale", pct) end
+function Window:SetResolution(mode) D.set("ui_fit", mode) end
+function Window:SetAspect(ratio) D.set("ui_aspect", ratio) end
+function Window:SetAspectFit(mode) D.set("ui_aspect_fit", mode) end
+function Window:SetDensity(name) D.set("ui_density", name) end
+function Window:SetStyle(name) D.set("ui_style", name) end
+function Window:SetTextScale(pct) D.set("ui_font_scale", pct) end
+function Window:SetIconScale(pct) D.set("ui_icon_scale", pct) end
+function Window:SetElementScale(pct) D.set("ui_elem_scale", pct) end
+function Window:SetEasing(name) D.set("ui_ease", name) end
+function Window:SetMotion(level) D.set("ui_motion", level) end
+function Window:SetWorldStretch(on) D.set("ws_on", on == true) end
+function Window:ResetDisplay() D.runAction("act_res_reset") end
+function Window:GetResolution() return D.resUpdate() end
+function Window:Toggle(v)
+	if v == nil then v = not D.menuOpen end
+	D.setMenu(v)
+end
+function Window:IsOpen() return D.menuOpen end
+function Window:SaveConfig(name) return D.saveConfig(name) end
+function Window:LoadConfig(name)
+	local ok = D.loadConfig(name)
+	if ok then D.set("cfg_current", name) end
+	return ok
+end
+function Window:SelectTab(t)
+	local id = type(t) == "table" and t.entry and t.entry.id or t
+	if D.W_STATE.win then D.selectPage(id) else D.W_STATE.current = id end
+end
+function Window:Minimize(v)
+	if v == nil then v = true end
+	D.setMinimized(v)
+end
+function Window:IsMinimized() return D.W_STATE.minimized == true end
+function Window:Eject() UI.Unload() end
+Window.Destroy = Window.Eject
+Window.Unload = Window.Eject
+
+function API:SetTheme(name) D.set("ui_theme", name) end
+function API:Toggle(v)
+	if v == nil then v = not D.menuOpen end
+	D.setMenu(v)
+end
+function API:IsOpen() return D.menuOpen end
+function API:Eject() UI.Unload() end
+API.Unload = API.Eject
+function API:GetFlag(k) return S[k] end
+function API:SetFlag(k, v) D.set(k, v) end
+function API:GetElement(flag) return API.Elements[flag] end
+
+function API:AddTheme(name, palette)
+	D.addPalette(tostring(name), palette or {})
+	return name
+end
+
+function API:HasIcon(name) return D.hasIcon(name) end
+
+local PATCHES = {}
+function API:Patch(inst, prop, value)
+	local rec = PATCHES[inst]
+	if not rec then
+		rec = {}
+		PATCHES[inst] = rec
+	end
+	if rec[prop] == nil then
+		local ok, cur = pcall(function() return inst[prop] end)
+		if ok then rec[prop] = {v = cur} end
+	end
+	pcall(function() inst[prop] = value end)
+	return inst
+end
+function API:Restore(inst, prop)
+	local rec = PATCHES[inst]
+	if not rec then return end
+	for p, r in pairs(rec) do
+		if prop == nil or p == prop then
+			pcall(function() inst[p] = r.v end)
+			rec[p] = nil
+		end
+	end
+	if next(rec) == nil then PATCHES[inst] = nil end
+end
+D.onCleanup(function()
+	for inst, rec in pairs(PATCHES) do
+		for p, r in pairs(rec) do pcall(function() inst[p] = r.v end) end
+	end
+	table.clear(PATCHES)
+end)
+
+function API:Connect(signal, fn)
+	return D.on(signal, function(...)
+		local ok, err = pcall(fn, ...)
+		if not ok then D.logError(err) end
+	end)
+end
+
+function API:Track(inst)
+	D.onCleanup(function() pcall(function() inst:Destroy() end) end)
+	return inst
+end
+
+function API:Loop(fn, interval)
+	if interval == nil then
+		local c = self:Connect(RunService.Heartbeat, fn)
+		return function() c:Disconnect() end
+	end
+	local running = true
+	task.spawn(function()
+		while running and D.alive do
+			local ok, err = pcall(fn)
+			if not ok then D.logError(err) end
+			task.wait(interval)
+		end
+	end)
+	return function() running = false end
+end
+
+function API:OnEject(fn)
+	D.onCleanup(function()
+		local ok, err = pcall(fn)
+		if not ok then D.logError(err) end
+	end)
+end
+API.OnUnload = API.OnEject
+
+local Widget = {}
+Widget.__index = Widget
+function Widget:SetRow(key, value, color)
+	key = tostring(key)
+	if self.w.values[key] == nil then table.insert(self.w.order, key) end
+	self.w.values[key] = value == nil and "" or value
+	self.w.colors[key] = color
+	D.refreshWidget(self.w)
+	return self
+end
+function Widget:RemoveRow(key)
+	key = tostring(key)
+	self.w.values[key] = nil
+	self.w.colors[key] = nil
+	local i = table.find(self.w.order, key)
+	if i then table.remove(self.w.order, i) end
+	D.refreshWidget(self.w)
+	return self
+end
+function Widget:Clear()
+	table.clear(self.w.values)
+	table.clear(self.w.colors)
+	table.clear(self.w.order)
+	D.refreshWidget(self.w)
+	return self
+end
+function Widget:SetTitle(t)
+	self.w.title = tostring(t)
+	D.refreshWidget(self.w)
+	return self
+end
+function Widget:SetVisible(v)
+	self.w.visible = v and true or false
+	D.refreshWidget(self.w)
+	return self
+end
+function Widget:Destroy()
+	local i = table.find(D.WIDGETS, self.w)
+	if i then table.remove(D.WIDGETS, i) end
+	if self.w.inst then self.w.inst:Destroy() end
+end
+
+function API:Widget(o)
+	o = type(o) == "string" and {Name = o} or o or {}
+	local title = o.Name or o.Title or "Widget"
+	local w = {key = slug(o.Flag or title), title = title, icon = o.Icon, width = o.Width or 220, visible = o.Visible ~= false, emptyText = o.Empty, values = {}, colors = {}, order = {}}
+	if o.Position then w.x, w.y = o.Position.X, o.Position.Y end
+	table.insert(D.WIDGETS, w)
+	local h = setmetatable({w = w}, Widget)
+	for _, r in ipairs(o.Rows or {}) do h:SetRow(r[1], r[2], r[3]) end
+	if D.O and D.O.root and D.O.root.Parent then D.buildOverlays() end
+	return h
+end
+
+local function plainReplace(s, old, new)
+	local i, j = string.find(s, old, 1, true)
+	if not i then return s end
+	return string.sub(s, 1, i - 1) .. new .. string.sub(s, j + 1)
+end
+
+local function findIn(list, key, parent)
+	for _, e in ipairs(list) do
+		if e.id and (string.lower(e.id) == key or (e.name and string.lower(e.name) == key)) then return e, parent end
+		if e.children then
+			local f, p = findIn(e.children, key, e)
+			if f then return f, p end
+		end
+	end
+end
+
+local function findEntry(key)
+	local k = string.lower(tostring(key))
+	local e, p = findIn(D.USER_NAV, k)
+	if e then return e, p end
+	local b = D.BUILTIN
+	return findIn({b.home, b.server, b.tools, b.settings, b.player, b.visuals, b.targets}, k)
+end
+
+function Tab:GetName() return self.entry.name end
+function Tab:SetName(name)
+	local old = self.entry.name
+	self.entry.name = tostring(name)
+	for _, it in ipairs(D.INDEX) do
+		if it.page == self.entry.id or (self.entry.children and D.PARENT[it.page] == self.entry) then
+			it.path = plainReplace(it.path, old, self.entry.name)
+		end
+	end
+	navChanged()
+	if D.W_STATE.win and D.W_STATE.current == self.entry.id and D.W_STATE.title then D.W_STATE.title.Text = self.entry.name end
+	return self
+end
+Tab.SetTitle = Tab.SetName
+function Tab:SetIcon(icon)
+	self.entry.icon = pickIcon(icon, "app-window")
+	navChanged()
+	return self
+end
+function Tab:SetVisible(v)
+	self.entry.hidden = (not v) or nil
+	navChanged()
+	return self
+end
+function Tab:IsVisible() return not self.entry.hidden end
+function Tab:Destroy()
+	local list = self.parentEntry and self.parentEntry.children or D.USER_NAV
+	local i = table.find(list, self.entry)
+	if i and not self.entry.builtin then
+		table.remove(list, i)
+	else
+		self.entry.hidden = true
+	end
+	navChanged()
+end
+Tab.Remove = Tab.Destroy
+function Tab:GetSection(name)
+	local k = string.lower(tostring(name))
+	for ci, col in ipairs(self.entry.page or {}) do
+		if not col.preview then
+			for _, sec in ipairs(col) do
+				if string.lower(sec.title or "") == k then
+					return setmetatable({rows = sec.rows, sec = sec, page = self.entry.id, entry = self.entry, col = ci, path = self.entry.id .. "_" .. slug(sec.title)}, Section)
+				end
+			end
+		end
+	end
+end
+function Tab:GetSubTab(name)
+	local k = string.lower(tostring(name))
+	for _, c in ipairs(self.entry.children or {}) do
+		if string.lower(c.name) == k or c.id == name then return setmetatable({entry = c, window = self.window, parentEntry = self.entry}, Tab) end
+	end
+end
+
+function Section:GetName() return self.sec.title end
+function Section:SetName(name)
+	if self.sec.protected then return self end
+	self.sec.title = tostring(name)
+	rebuild()
+	return self
+end
+Section.SetTitle = Section.SetName
+function Section:SetVisible(v)
+	if self.sec.protected then return self end
+	self.sec.hidden = (not v) or nil
+	rebuild()
+	return self
+end
+function Section:Destroy()
+	if self.sec.protected then return end
+	for _, col in ipairs(self.entry and self.entry.page or {}) do
+		local i = table.find(col, self.sec)
+		if i then table.remove(col, i) end
+	end
+	navChanged()
+end
+Section.Remove = Section.Destroy
+
+function Group:GetName() return self.header.group end
+function Group:SetName(name)
+	self.header.group = tostring(name)
+	navChanged()
+	return self
+end
+Group.SetTitle = Group.SetName
+function Group:SetVisible(v)
+	self.header.hidden = (not v) or nil
+	navChanged()
+	return self
+end
+function Group:Destroy()
+	if self.header.builtin then
+		self.header.hidden = true
+	else
+		local list = D.USER_NAV
+		local i = table.find(list, self.header)
+		if i then
+			table.remove(list, i)
+			while list[i] and not list[i].group do table.remove(list, i) end
+		end
+	end
+	navChanged()
+end
+Group.Remove = Group.Destroy
+function Group:GetTab(name)
+	local e, p = findEntry(name)
+	if e then return setmetatable({entry = e, window = self.window, parentEntry = p}, Tab) end
+end
+
+function Window:GetTab(name)
+	local e, p = findEntry(name)
+	if e then return setmetatable({entry = e, window = self, parentEntry = p}, Tab) end
+end
+function Window:GetGroup(name)
+	local k = string.lower(tostring(name))
+	for key, h in pairs(D.BUILTIN_GROUPS) do
+		if key == k or string.lower(h.group) == k then return setmetatable({header = h, window = self}, Group) end
+	end
+	for _, h in ipairs(D.USER_NAV) do
+		if h.group and string.lower(h.group) == k then return setmetatable({header = h, window = self}, Group) end
+	end
+end
+function Window:SetTitle(t)
+	D.CONFIG.Title = tostring(t)
+	rebuild()
+end
+function Window:SetSubtitle(t)
+	D.CONFIG.Subtitle = t
+	rebuild()
+end
+function Window:SetAuthor(t)
+	D.CONFIG.Author = tostring(t)
+	D.set("i_author", D.CONFIG.Author)
+end
+function Window:SetLogo(logo)
+	D.CONFIG.Logo = logo
+	D.logoAsset = nil
+	rebuild()
+end
+function Window:SetSize(w, h)
+	if typeof(w) == "Vector2" or typeof(w) == "UDim2" then
+		w, h = typeof(w) == "Vector2" and w.X or w.X.Offset, typeof(w) == "Vector2" and w.Y or w.Y.Offset
+	end
+	D.CONFIG.Width, D.CONFIG.Height = w, h
+	rebuild()
+end
+
+local TOKENS = {
+	background = "win", window = "win", panel = "panel", card = "card", field = "field", hover = "hover",
+	popup = "pop", text = "text", label = "label", subtext = "sub", dim = "dim", off = "off", knob = "knobOff",
+}
+local function toColor(v)
+	if typeof(v) == "Color3" then return v end
+	if type(v) == "string" then
+		local ok, c = pcall(Color3.fromHex, string.sub(string.gsub(v, "#", ""), 1, 6))
+		if ok then return c end
+	end
+end
+function API:SetColor(token, color)
+	local k = string.lower(tostring(token))
+	if k == "accent" then
+		D.set("ui_accent", hex(color))
+		return
+	end
+	D.THEME_OVERRIDES = D.THEME_OVERRIDES or {}
+	D.THEME_OVERRIDES[TOKENS[k] or token] = toColor(color)
+	if D.W_STATE.win then D.requestRebuild() end
+end
+function API:SetColors(map)
+	for k, v in pairs(map or {}) do
+		local key = string.lower(tostring(k))
+		if key == "accent" then
+			D.set("ui_accent", hex(v))
+		else
+			D.THEME_OVERRIDES = D.THEME_OVERRIDES or {}
+			D.THEME_OVERRIDES[TOKENS[key] or k] = toColor(v)
+		end
+	end
+	if D.W_STATE.win then D.requestRebuild() end
+end
+function API:ResetColors()
+	D.THEME_OVERRIDES = {}
+	if D.W_STATE.win then D.requestRebuild() end
+end
+function API:GetColor(token)
+	local k = string.lower(tostring(token))
+	if k == "accent" then return D.accent() end
+	return T[TOKENS[k] or token]
+end
+function API:GetTheme()
+	return {
+		Name = S.ui_theme, Accent = D.accent(), Background = T.win, Panel = T.panel, Card = T.card, Field = T.field,
+		Hover = T.hover, Popup = T.pop, Text = T.text, Label = T.label, Subtext = T.sub, Dim = T.dim, Light = T.light == true,
+	}
+end
+function API:OnThemeChanged(fn)
+	local a = D.watch("__theme", function() spawnSafe(fn, API:GetTheme()) end)
+	local b = D.watch("ui_accent", function() spawnSafe(fn, API:GetTheme()) end)
+	return {Disconnect = function()
+		a()
+		b()
+	end}
+end
+
+function Container:Custom(a)
+	local o = type(a) == "function" and {Build = a} or a or {}
+	local name = o.Name or o.Title
+	local row = common({t = "custom", label = name, height = o.Height, padded = o.Padding ~= false}, o)
+	row.id = autoId(self, "custom", name or "custom", o.Flag)
+	local el
+	local build = o.Build or o.Render
+	row.build = function(holder, api)
+		api.Element = el
+		if type(build) ~= "function" then return end
+		local ok, err = pcall(build, holder, api)
+		if not ok then D.logError(err) end
+	end
+	el = push(self, row, "custom", o.Default, o.Callback)
+	return el
+end
+
+function API:RegisterElement(name, def)
+	if type(def) == "function" then def = {Build = def} end
+	if type(name) ~= "string" or type(def) ~= "table" or type(def.Build) ~= "function" then return end
+	Container[name] = function(self, a, b)
+		local o = args(a, b)
+		local merged = {}
+		for k, v in pairs(o) do merged[k] = v end
+		merged.Height = o.Height or def.Height
+		if o.Default == nil then merged.Default = def.Default end
+		merged.Build = function(holder, api)
+			api.Options = o
+			return def.Build(holder, api, o)
+		end
+		return Container.Custom(self, merged)
+	end
+	return true
+end
+
+function Element:SetCallback(fn)
+	if self._setCallback then
+		self._setCallback(fn)
+		return self
+	end
+	if self._cbOff then self._cbOff() end
+	self._cbOff = watchCallback(self.Flag, fn, self.Kind)
+	return self
+end
+function Element:OnClick(fn)
+	local l = self._listeners
+	if not l then return self:OnChanged(fn) end
+	table.insert(l, fn)
+	return {Disconnect = function()
+		local i = table.find(l, fn)
+		if i then table.remove(l, i) end
+	end}
+end
+Element.OnPress = Element.OnClick
+function Element:MoveTo(index)
+	local list = self.List
+	local i = list and table.find(list, self.Row)
+	if not i then return self end
+	table.remove(list, i)
+	table.insert(list, math.clamp(math.floor(tonumber(index) or 1), 1, #list + 1), self.Row)
+	rebuild()
+	return self
+end
+function Element:MoveUp()
+	local i = self.List and table.find(self.List, self.Row)
+	if i then self:MoveTo(i - 1) end
+	return self
+end
+function Element:MoveDown()
+	local i = self.List and table.find(self.List, self.Row)
+	if i then self:MoveTo(i + 1) end
+	return self
+end
+function Element:AddButton(o)
+	o = type(o) == "function" and {Callback = o} or o or {}
+	self.Row.extras = self.Row.extras or {}
+	table.insert(self.Row.extras, {icon = o.Icon or "circle", tip = o.Tooltip or o.Description, cb = o.Callback and function() spawnSafe(o.Callback) end})
+	rebuild()
+	return self
+end
+
+function Tab:SetDescription(textValue)
+	self.entry.desc = textValue
+	navChanged()
+	return self
+end
+Tab.SetTooltip = Tab.SetDescription
+function Tab:SetOrder(n)
+	self.entry.order = n
+	navChanged()
+	return self
+end
+function Tab:Lock(reason)
+	self.entry.locked = reason or true
+	navChanged()
+	return self
+end
+function Tab:Unlock()
+	self.entry.locked = nil
+	navChanged()
+	return self
+end
+function Tab:MoveTo(index)
+	local list = self.parentEntry and self.parentEntry.children
+	if not list then return self:SetOrder(index) end
+	local i = table.find(list, self.entry)
+	if i then
+		table.remove(list, i)
+		table.insert(list, math.clamp(math.floor(tonumber(index) or 1), 1, #list + 1), self.entry)
+		navChanged()
+	end
+	return self
+end
+function Tab:CustomPage(build)
+	self.entry.page = self.entry.page or {}
+	self.entry.children = nil
+	self.entry.customPage = function(holder, api)
+		local ok, err = pcall(build, holder, api)
+		if not ok then D.logError(err) end
+	end
+	navChanged()
+	return self
+end
+
+function Section:SetOrder(n)
+	self.sec.order = n
+	rebuild()
+	return self
+end
+function Section:SetSide(side)
+	local target = (side == "Right" or side == 2) and 2 or 1
+	local page = self.entry and self.entry.page
+	if not page then return self end
+	for _, col in ipairs(page) do
+		local i = table.find(col, self.sec)
+		if i then table.remove(col, i) end
+	end
+	page[target] = page[target] or {}
+	table.insert(page[target], self.sec)
+	navChanged()
+	return self
+end
+function Section:SetShowWhen(w)
+	self.sec.depends = conds(w)
+	rebuild()
+	return self
+end
+
+function Group:SetOrder(n)
+	self.header.order = n
+	navChanged()
+	return self
+end
+
+function API:OnFlag(flag, fn)
+	local off = D.watch(flag, function(v) spawnSafe(fn, v) end)
+	return {Disconnect = off}
+end
+
+local function findBuiltinRow(flag)
+	local function scanRows(rows, pageId, parentFlag)
+		for _, r in ipairs(rows) do
+			if r.id == flag then return r, pageId, parentFlag end
+			if r.sub then
+				for _, card in ipairs(r.sub.cards) do
+					local f, p, pf = scanRows(card, pageId, r.id)
+					if f then return f, p, pf end
+				end
+			end
+		end
+	end
+	local function scanEntry(e)
+		if e.page then
+			for _, col in ipairs(e.page) do
+				if not col.preview then
+					for _, sec in ipairs(col) do
+						local f, p, pf = scanRows(sec.rows, e.id)
+						if f then return f, p, pf end
+					end
+				end
+			end
+		end
+		for _, c in ipairs(e.children or {}) do
+			local f, p, pf = scanEntry(c)
+			if f then return f, p, pf end
+		end
+	end
+	for _, e in pairs(D.BUILTIN) do
+		local f, p, pf = scanEntry(e)
+		if f then return f, p, pf end
+	end
+end
+function API:GetElement(flag)
+	local el = API.Elements[flag]
+	if el then return el end
+	local r, page, pf = findBuiltinRow(flag)
+	if not r then return nil end
+	el = setmetatable({Flag = flag, Row = r, Kind = r.t, Page = page, ParentFlag = pf}, Element)
+	API.Elements[flag] = el
+	return el
+end
+
+local Theme = {}
+API.Theme = Theme
+function Theme:Register(name, palette) return API:AddTheme(name, palette) end
+Theme.Add = Theme.Register
+function Theme:Set(name) D.set("ui_theme", D.themeName(name)) end
+function Theme:Get() return API:GetTheme() end
+function Theme:List()
+	local t = {}
+	for i, n in ipairs(D.THEME_NAMES) do t[i] = n end
+	return t
+end
+function Theme:SetColor(token, color) return API:SetColor(token, color) end
+function Theme:SetColors(map) return API:SetColors(map) end
+function Theme:GetColor(token) return API:GetColor(token) end
+function Theme:ResetColor(token)
+	if token == nil then return API:ResetColors() end
+	local k = string.lower(tostring(token))
+	if D.THEME_OVERRIDES then
+		for key in pairs(D.THEME_OVERRIDES) do
+			if string.lower(key) == k or key == k then D.THEME_OVERRIDES[key] = nil end
+		end
+		local map = {background = "win", window = "win", popup = "pop", subtext = "sub", knob = "knobOff"}
+		if map[k] then D.THEME_OVERRIDES[map[k]] = nil end
+	end
+	if D.W_STATE.win then D.requestRebuild() end
+end
+function Theme:OnChanged(fn) return API:OnThemeChanged(fn) end
+function Theme:Export()
+	local g = API:GetTheme()
+	local data = {name = S.ui_theme}
+	for k, v in pairs(g) do
+		if typeof(v) == "Color3" then data[k] = v:ToHex() end
+	end
+	return "ARVNT1:" .. D.b64encode(HttpService:JSONEncode(data))
+end
+function Theme:Import(code, name)
+	local payload = string.match(tostring(code or ""), "^ARVNT1:(.+)$")
+	if not payload then return false end
+	local ok, data = pcall(function() return HttpService:JSONDecode(D.b64decode(payload)) end)
+	if not ok or type(data) ~= "table" then return false end
+	local nm = tostring(name or data.name or "Imported")
+	if D.PALETTES[nm] and not name then nm = nm .. " (shared)" end
+	D.addPalette(nm, {
+		Background = data.Background, Panel = data.Panel, Card = data.Card, Field = data.Field, Hover = data.Hover,
+		Popup = data.Popup, Text = data.Text, Label = data.Label, Subtext = data.Subtext, Dim = data.Dim, Accent = data.Accent,
+	})
+	D.set("ui_theme", nm)
+	return nm
+end
+local BINDS = setmetatable({}, {__mode = "k"})
+local function applyBind(inst, map)
+	for prop, token in pairs(map) do
+		local c = API:GetColor(token)
+		if typeof(c) == "Color3" then pcall(function() inst[prop] = c end) end
+	end
+end
+function D.applyBinds()
+	for inst, map in pairs(BINDS) do applyBind(inst, map) end
+end
+function Theme:Bind(inst, map)
+	BINDS[inst] = map
+	applyBind(inst, map)
+	return inst
+end
+function Theme:Unbind(inst) BINDS[inst] = nil end
+D.watch("ui_accent", function() D.applyBinds() end)
+
+local Config = {}
+API.Config = Config
+D.registerFlag("cfg_userdata", {})
+function Config:List() return D.listConfigs() end
+function Config:Save(name)
+	local n = D.cleanName(name)
+	if n == "" then return false end
+	local ok = D.saveConfig(n)
+	if ok then
+		D.set("cfg_current", n)
+		D.fire("__configs")
+	end
+	return ok
+end
+function Config:Load(name)
+	local ok = D.loadConfig(name)
+	if ok then D.set("cfg_current", name) end
+	return ok
+end
+function Config:Delete(name)
+	local ok = D.deleteConfig(name)
+	D.fire("__configs")
+	return ok
+end
+function Config:SetAutoload(name) D.set("cfg_autoload", name or "Autosave") end
+function Config:GetAutoload() return S.cfg_autoload end
+function Config:Export() return D.exportCode() end
+function Config:Import(code) return D.importCode(code) end
+function Config:Set(key, value)
+	local t = D.clone(S.cfg_userdata or {})
+	t[tostring(key)] = value
+	D.set("cfg_userdata", t)
+end
+function Config:ResetAll() D.resetEverything() end
+function API:OnReset(fn)
+	D.RESET_HOOKS = D.RESET_HOOKS or {}
+	table.insert(D.RESET_HOOKS, fn)
+end
+function Config:Get(key, default)
+	local t = S.cfg_userdata
+	local v = type(t) == "table" and t[tostring(key)]
+	if v == nil then return default end
+	return v
+end
+
+D.WM_PARTS = D.WM_PARTS or {}
+local function refreshOverlaysNow()
+	if D.O and D.O.root and D.O.root.Parent then D.buildOverlays() end
+end
+function API:SetWatermark(o)
+	if type(o) == "string" then o = {Text = o} end
+	o = o or {}
+	if o.Text then D.CONFIG.WatermarkText = tostring(o.Text) end
+	if o.Visible ~= nil then D.set("ov_wm", o.Visible == true) end
+	refreshOverlaysNow()
+end
+function API:AddWatermarkPart(key, o)
+	if type(o) == "function" then o = {Get = o} end
+	o = o or {}
+	key = tostring(key)
+	for i, p in ipairs(D.WM_PARTS) do
+		if p.key == key then
+			table.remove(D.WM_PARTS, i)
+			break
+		end
+	end
+	table.insert(D.WM_PARTS, {key = key, icon = o.Icon, get = o.Get or function() return o.Text end})
+	refreshOverlaysNow()
+end
+function API:RemoveWatermarkPart(key)
+	for i, p in ipairs(D.WM_PARTS) do
+		if p.key == tostring(key) then
+			table.remove(D.WM_PARTS, i)
+			break
+		end
+	end
+	refreshOverlaysNow()
+end
+
+function API:AddTooltip(inst, textValue)
+	D.tip(inst, textValue)
+	return inst
+end
+function API:AddFont(name, family)
+	if typeof(family) == "Font" then family = family.Family end
+	if type(name) ~= "string" or type(family) ~= "string" then return false end
+	D.FONT_FAMILIES[name] = family
+	if not table.find(D.FONTS_UI, name) then table.insert(D.FONTS_UI, name) end
+	return true
+end
+function API:SetFont(name) D.set("ui_font", name) end
+function API:SetNotifySide(pos) D.set("nt_pos", pos) end
+function API:SetResolution(mode) D.set("ui_fit", mode) end
+function API:SetAspect(ratio) D.set("ui_aspect", ratio) end
+function API:SetStyle(name) D.set("ui_style", name) end
+function API:SetDensity(name) D.set("ui_density", name) end
+function API:GetResolution() return D.resUpdate() end
+
+function Window:SetMenuKey(key)
+	if D.validKey("ui_menukey", key) then D.set("ui_menukey", key) end
+end
+function Window:Center() D.runAction("act_reset_pos") end
+function Window:OnOpen(fn)
+	local off = D.watch("__menu", function() if D.menuOpen then spawnSafe(fn) end end)
+	return {Disconnect = off}
+end
+function Window:OnClose(fn)
+	local off = D.watch("__menu", function() if not D.menuOpen then spawnSafe(fn) end end)
+	return {Disconnect = off}
+end
+function Window:LockAll(reason)
+	D.LOCK_ALL = reason or true
+	rebuild()
+end
+function Window:UnlockAll()
+	D.LOCK_ALL = nil
+	rebuild()
+end
+function Window:OpenSearch()
+	if D.CONFIG.Search == false then return end
+	if not D.menuOpen then D.setMenu(true) end
+	task.defer(D.focusSearch)
+end
+function Window:SetBackground(o)
+	o = type(o) == "string" and {Image = o} or o or {}
+	if o.Opacity then D.set("bg_opacity", math.clamp(math.floor(o.Opacity * 100 + 0.5), 0, 100)) end
+	if o.Darken then D.set("bg_dark", math.clamp(math.floor(o.Darken * 100 + 0.5), 0, 100)) end
+	if o.Fit then D.set("bg_fit", o.Fit) end
+	if o.Image then
+		task.spawn(function()
+			local img, asset = o.Image
+			if string.find(img, "^https?://") then
+				asset = D.fetchImage(img, "background")
+			elseif string.match(img, "^%d+$") then
+				asset = "rbxassetid://" .. img
+			else
+				asset = img
+			end
+			if asset then
+				D.bgAsset = asset
+				D.set("bg_on", true)
+				D.applyBackground()
+			end
+		end)
+	elseif o.Enabled ~= nil then
+		D.set("bg_on", o.Enabled == true)
+	end
+end
+
+local function checkKey(ks, key)
+	key = string.gsub(string.gsub(tostring(key or ""), "^%s+", ""), "%s+$", "")
+	if key == "" then return false end
+	if type(ks.Check) == "function" then
+		local ok, r = pcall(ks.Check, key)
+		return ok and r == true
+	end
+	local keys = ks.Keys or ks.Key
+	if type(keys) == "string" then keys = {keys} end
+	for _, k in ipairs(type(keys) == "table" and keys or {}) do
+		if tostring(k) == key then return true end
+	end
+	return false
+end
+
+local function runKeySystem(ks, done)
+	local path = DIR .. "/key.txt"
+	if ks.SaveKey ~= false and isfile and readfile then
+		local ok, saved = pcall(function() return isfile(path) and readfile(path) end)
+		if ok and type(saved) == "string" and checkKey(ks, saved) then
+			done()
+			return
+		end
+	end
+	for k, v in pairs(D.DEF_OVERRIDES or {}) do S[k] = D.clone(v) end
+	D.applyTheme()
+	D.applyMetrics()
+	local buttons = {}
+	if ks.Link then
+		buttons[#buttons + 1] = {Name = "Get Key", Keep = true, Callback = function()
+			if setclipboard then pcall(setclipboard, tostring(ks.Link)) end
+			D.notify(ks.Title or "Key", "Link copied.", {icon = "copy", dur = 2.5})
+		end}
+	end
+	buttons[#buttons + 1] = {Name = "Continue", Style = "Primary", Callback = function(key)
+		if ks.SaveKey ~= false and writefile then
+			D.ensureDir(DIR)
+			pcall(writefile, path, string.gsub(string.gsub(tostring(key or ""), "^%s+", ""), "%s+$", ""))
+		end
+		done()
+	end}
+	D.openDialog({
+		Title = ks.Title or ((D.CONFIG.Title or "arvn") .. " Key"),
+		Content = ks.Note or ks.Content,
+		Icon = "key-round",
+		Input = {Placeholder = ks.Placeholder or "Enter key"},
+		Dismissable = false,
+		Validate = function(key)
+			if checkKey(ks, key) then return true end
+			return false, ks.Wrong or "That key is not valid."
+		end,
+		Buttons = buttons,
+	})
+end
+
+function API:CreateWindow(o)
+	o = o or {}
+	if D.windowObj then return D.windowObj end
+	local cfg = D.CONFIG
+	local ov = D.DEF_OVERRIDES or {}
+	D.DEF_OVERRIDES = ov
+	if type(o.Defaults) == "table" then
+		for k, v in pairs(o.Defaults) do
+			ov[tostring(k)] = typeof(v) == "Color3" and hex(v) or v
+		end
+	end
+	cfg.Title = o.Title or o.Name or "arvn"
+	cfg.Subtitle = o.Subtitle or o.SubTitle
+	cfg.Author = o.Author or o.Credits
+	cfg.Version = o.Version
+	cfg.Logo = o.Logo or o.Icon
+	for _, key in ipairs({"Dashboard", "Server", "Tools"}) do
+		cfg[key] = (o[key] ~= nil and o[key] ~= false) or nil
+	end
+	if o.Settings == false then cfg.Settings = false else cfg.Settings = nil end
+	cfg.LoadNotification = o.LoadNotification
+	local about
+	for _, c in ipairs(D.BUILTIN.settings.children) do
+		if c.id == "set_interface" then
+			for _, col in ipairs(c.page) do
+				for _, sec in ipairs(col) do
+					if sec.title == "About" then about = sec end
+				end
+			end
+		end
+	end
+	if about then
+		for _, r in ipairs(about.rows) do
+			if r.id == "i_author" and not o.Author then r.hidden = true end
+			if r.id == "i_version" and not o.Version then r.hidden = true end
+		end
+		local extra = {}
+		for i, c in ipairs(type(o.Credits) == "table" and o.Credits or {}) do
+			local name = type(c) == "table" and (c.Name or c[1]) or nil
+			local value = type(c) == "table" and (c.Value or c[2]) or tostring(c)
+			if name then
+				local id = "i_credit_" .. i
+				extra[#extra + 1] = {t = "info", id = id, label = tostring(name), desc = "Credits.", value = tostring(value)}
+				S[id] = tostring(value)
+			end
+		end
+		for i, r in ipairs(extra) do table.insert(about.rows, 3 + i, r) end
+	end
+	cfg.MainGroup = o.MainGroup
+	if o.Folder then DIR = tostring(o.Folder) end
+	cfg.Width = o.Width or (o.Size and (typeof(o.Size) == "Vector2" and o.Size.X or typeof(o.Size) == "UDim2" and o.Size.X.Offset)) or nil
+	cfg.Height = o.Height or (o.Size and (typeof(o.Size) == "Vector2" and o.Size.Y or typeof(o.Size) == "UDim2" and o.Size.Y.Offset)) or nil
+	cfg.SidebarWidth = o.SidebarWidth
+	local G = D.BUILTIN_GROUPS
+	local groups = o.Groups or {}
+	G.main.group = groups.Main or o.MainGroup or G.main.group
+	G.utility.group = groups.Utility or o.UtilityGroup or G.utility.group
+	G.settings.group = groups.Settings or o.SettingsGroup or G.settings.group
+	local PAGES = {Dashboard = "home", Server = "server", Tools = "tools", Settings = "settings", General = "set_interface", Interface = "set_interface", Appearance = "set_theme", Theme = "set_theme", Overlays = "set_overlays", Profile = "set_personal", Personalize = "set_personal", Sounds = "set_sounds", Configs = "set_configs"}
+	local function pageEntry(id)
+		if D.BUILTIN[id] then return D.BUILTIN[id] end
+		for _, c in ipairs(D.BUILTIN.settings.children) do
+			if c.id == id then return c end
+		end
+	end
+	for key, id in pairs(PAGES) do
+		local v = key ~= "Theme" and key ~= "Profile" and o[key] or nil
+		if v == nil and type(o.Pages) == "table" then v = o.Pages[key] end
+		if v == nil and type(o.SettingsPages) == "table" then v = o.SettingsPages[key] end
+		local e = pageEntry(id)
+		if e then
+			e.builtin = true
+			if v == false then
+				e.hidden = true
+			elseif type(v) == "table" then
+				if v.Name then e.name = v.Name end
+				if v.Icon then e.icon = pickIcon(v.Icon, e.icon) end
+			elseif type(v) == "string" then
+				e.name = v
+			end
+		end
+	end
+	if type(o.Colors) == "table" then API:SetColors(o.Colors) end
+	cfg.Resizable = o.Resizable
+	cfg.Search = o.Search
+	cfg.SubFolder = o.SubFolder
+	cfg.WatermarkText = o.WatermarkText
+	local ub = o.UIButton
+	if ub == nil then ub = o.MobileButton end
+	if type(ub) == "table" then
+		cfg.UIButton = ub
+	elseif ub == false then
+		ov.ui_button = false
+	end
+	if o.Sounds == false then ov.snd_on = false end
+	if o.Notifications == false then ov.nt_on = false end
+	if type(o.Background) == "table" or type(o.Background) == "string" then
+		local bg = type(o.Background) == "string" and {Image = o.Background} or o.Background
+		cfg.Background = bg
+		ov.bg_on = true
+		if bg.Opacity then ov.bg_opacity = math.clamp(math.floor(bg.Opacity * 100 + 0.5), 0, 100) end
+		if bg.Darken then ov.bg_dark = math.clamp(math.floor(bg.Darken * 100 + 0.5), 0, 100) end
+		if bg.Fit then ov.bg_fit = bg.Fit end
+	end
+	if o.NotifySide then ov.nt_pos = o.NotifySide end
+	if o.MenuKey and D.validKey("ui_menukey", o.MenuKey) then ov.ui_menukey = o.MenuKey end
+	if o.Theme then
+		ov.ui_theme = D.themeName(o.Theme)
+		local p = D.PALETTES[ov.ui_theme]
+		if p and p.accent and not o.Accent then ov.ui_accent = "#" .. string.sub(p.accent, 1, 6) .. "FF" end
+	end
+	if o.Accent then ov.ui_accent = hex(o.Accent) end
+	if o.OpenOnLoad == false then ov.ui_openload = false end
+	if o.Watermark == false then ov.ov_wm = false end
+	if o.Keybinds == false then ov.ov_kb = false end
+	if o.Keystrokes ~= nil then ov.ov_ks = o.Keystrokes == true end
+	if o.ToggleStyle then ov.ui_toggle = o.ToggleStyle end
+	if o.Font then ov.ui_font = o.Font end
+	if o.Scale then ov.ui_scale = o.Scale end
+	if o.Particles then ov.fx_style = o.Particles end
+	if o.Resolution then ov.ui_fit = o.Resolution end
+	if o.DesignWidth then ov.ui_refw = o.DesignWidth end
+	if o.DesignHeight then ov.ui_refh = o.DesignHeight end
+	if o.DeviceScale then ov.ui_dpi = o.DeviceScale end
+	if o.AspectRatio then ov.ui_aspect = o.AspectRatio end
+	if o.AspectFit then ov.ui_aspect_fit = o.AspectFit end
+	if o.AspectAnchor then ov.ui_anchor = o.AspectAnchor end
+	if o.Letterbox == true then ov.ui_bars = true end
+	if o.AvoidTopBar == true then ov.ui_topbar = true end
+	if o.Style then ov.ui_style = o.Style end
+	if o.Density then ov.ui_density = o.Density end
+	if o.TextScale then ov.ui_font_scale = o.TextScale end
+	if o.IconScale then ov.ui_icon_scale = o.IconScale end
+	if o.Easing then ov.ui_ease = o.Easing end
+	if o.Motion then ov.ui_motion = o.Motion end
+	if o.WorldStretch then
+		if type(o.WorldStretch) == "table" then
+			ov.ws_on = true
+			if o.WorldStretch.Ratio then ov.ws_aspect = o.WorldStretch.Ratio end
+			if o.WorldStretch.Mode then ov.ws_mode = o.WorldStretch.Mode end
+			if o.WorldStretch.FOV then ov.ws_fov = o.WorldStretch.FOV end
+			if o.WorldStretch.FOVMode then ov.ws_fov_mode = o.WorldStretch.FOVMode end
+		elseif o.WorldStretch == true then
+			ov.ws_on = true
+		end
+	end
+	if o.Blur ~= nil then ov.ui_blur = o.Blur == true end
+	if o.ShowErrors ~= nil then API.ShowErrors = o.ShowErrors end
+	local win = setmetatable({Flags = API.Flags, API = API}, Window)
+	D.windowObj = win
+	cfg.KeySystem = type(o.KeySystem) == "table" and o.KeySystem or nil
+	task.defer(function()
+		if not D.alive then return end
+		if cfg.KeySystem then
+			runKeySystem(cfg.KeySystem, function()
+				if D.alive then D.start() end
+			end)
+		else
+			D.start()
+		end
+	end)
+	return win
+end
+API.Window = API.CreateWindow
+end
+return D.API
